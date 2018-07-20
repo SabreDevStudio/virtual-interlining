@@ -1,32 +1,37 @@
+const {JSDOM} = require('jsdom')
+const fetch = require('node-fetch')
 const js2xmlparser = require('js2xmlparser')
+const jsHelper = require('./jsHelper.service')
 
-let request = {
-  '@': {COR: 'Sabre', VER: '1.0'},
-  BIL: {
-    '@': {AAA: '61N1', AKD: 'S',CSV: 'MMODAL', PID: 'AA', TXN: 123, UCD: '61N1'}
-  },
-  SEG: {
-    '@': {SMN: 2, SMX: 2}
-  },
-  MMS: {
-    ODM: {
-      '@': {BRD: 'LON', OFF:"KRK", BTP:"C", OTP:"C"}
+const getRequest = (origin, destination, date) => {
+  return {
+    '@': {COR: 'Sabre', VER: '1.0'},
+    BIL: {
+      '@': {AAA: '61N1', AKD: 'S',CSV: 'MMODAL', PID: 'AA', TXN: 123, UCD: '61N1'}
     },
-    DTM: {
-      '@': {TGD: '2018-08-01'}
+    SEG: {
+      '@': {SMN: 2, SMX: 2}
     },
-    CTM: {
-      '@': {CNC: 0, CNA: 1439}
-    },
-    OTM: {
-      '@': {RGT: false}
+    MMS: {
+      ODM: {
+        '@': {BRD: origin, OFF:destination, BTP:'C', OTP:'C'}
+      },
+      DTM: {
+        '@': {TGD: date}
+      },
+      CTM: {
+        '@': {CNC: 0, CNA: 1439}
+      },
+      OTM: {
+        '@': {RGT: false}
+      }
     }
   }
 }
 
-const RQData = {
-  body: {
-    request: js2xmlparser.parse("DSS", request),
+const getOneLinedBody = (origin, destination, date) => {
+  let body = {
+    request: js2xmlparser.parse('DSS', getRequest(origin, destination, date)),
     connectionPrefix: 'tcpip.',
     stylesheet: 'results-raw.xsl',
     'namingConnection.type': 'com.sabre.atse.dss.communication.DssNamingConnectionDescriptor',
@@ -46,18 +51,33 @@ const RQData = {
     'tcpip.port': 54201,
     'tcpip.socketTimeout': 15000,
     submit: 'Send Request'
-  },
-  getheaders: oneLinedStringLength => {
-    return {
-      'Host': 'utt.cert.sabre.com',
-      'Connection': 'keep-alive',
-      'Content-Length': oneLinedStringLength,
-      'Pragma': 'no-cache',
-      'Cache-Control': 'no-cache',
-      'Origin': 'http//utt.cert.sabre.com',
-      'Upgrade-Insecure-Requests': 1,
-      'Content-Type': 'application/x-www-form-urlencoded'
-    }
+  }
+
+  return jsHelper.toOneLineString(body)
+}
+
+const getheaders = () => {
+  return {
+    'Host': 'utt.cert.sabre.com',
+    'Connection': 'keep-alive',
+    'Pragma': 'no-cache',
+    'Cache-Control': 'no-cache',
+    'Origin': 'http//utt.cert.sabre.com',
+    'Upgrade-Insecure-Requests': 1,
+    'Content-Type': 'application/x-www-form-urlencoded'
+  }
+}
+
+const RQData = {
+  getTransferAirport: (origin, destination, date, cb) => {
+    fetch('http://utt.cert.sabre.com/utt/dss/sendrequest', {
+      method: 'POST',
+      body: getOneLinedBody(origin, destination, date),
+      headers: getheaders()
+    }).then(res => res.text())
+      .then(html => {
+        cb(null, jsHelper.getMMPList(new JSDOM(html)))
+      })
   }
 }
 
