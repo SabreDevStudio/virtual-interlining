@@ -1,0 +1,17 @@
+{
+  "name": "dssrq",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "himalaya": "^1.1.0",
+    "js2xmlparser": "^3.0.0",
+    "jsdom": "^11.11.0",
+    "node-fetch": "^2.1.2"
+  }
+}
