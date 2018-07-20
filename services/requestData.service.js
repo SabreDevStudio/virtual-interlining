@@ -74,7 +74,10 @@ const RQData = {
       method: 'POST',
       body: getOneLinedBody(origin, destination, date),
       headers: getheaders()
-    }).then(res => res.text())
+    }).then(res => {
+      if (res.status !== 200) cb(`Status: ${res.status}, ${res.statusText}`)
+      return res.text()
+    })
       .then(html => {
         cb(null, jsHelper.getMMPList(new JSDOM(html)))
       })
