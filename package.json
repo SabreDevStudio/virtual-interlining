@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "easyconvert": "0.0.2",
     "himalaya": "^1.1.0",
     "js2xmlparser": "^3.0.0",
     "jsdom": "^11.11.0",
