@@ -1,7 +1,9 @@
+'use strict'
+
 const {JSDOM} = require('jsdom')
 const fetch = require('node-fetch')
 const js2xmlparser = require('js2xmlparser')
-const jsHelper = require('./jsHelper.service')
+const jsHelper = require('../jsHelper.service')
 
 const getRequest = (origin, destination, date) => {
   return {
@@ -68,7 +70,7 @@ const getheaders = () => {
   }
 }
 
-const RQData = {
+const DSSResource = {
   getTransferAirport: (origin, destination, date, cb) => {
     fetch('http://utt.cert.sabre.com/utt/dss/sendrequest', {
       method: 'POST',
@@ -77,11 +79,10 @@ const RQData = {
     }).then(res => {
       if (res.status !== 200) cb(`Status: ${res.status}, ${res.statusText}`)
       return res.text()
-    })
-      .then(html => {
-        cb(null, jsHelper.getMMPList(new JSDOM(html)))
+    }).then(html => {
+        cb(null, new JSDOM(html))
       })
   }
 }
 
-module.exports = RQData
+module.exports = DSSResource

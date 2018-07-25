@@ -1,3 +1,5 @@
+'use strict'
+
 // Colors reference
 // You can use the following as so:
 // console.log(colorCode, data);
