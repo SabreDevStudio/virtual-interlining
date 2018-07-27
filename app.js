@@ -23,9 +23,12 @@ BFM.getBFM((err, data) => {
   console.log('data: ', data);
 })
 
+//https://developer.sabre.com/docs/read/rest_apis/air/search/instaflights_search
+
 // const getToken = () => {
 //   clientid = 'V1:krnnrjbso0jsk242:DEVCENTER:EXT'
-//   secret = 'uY39dPAa'
+// //secret = 'uY39dPAa'
+//   secret = 'blinD*sabre29'
 //   return btoa(btoa(clientid) + ':' + btoa(secret))
 // }
 
