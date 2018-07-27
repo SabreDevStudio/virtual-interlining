@@ -1,15 +1,13 @@
-'use strict'
-
-const DSS = require('./services/dss/dss.service')
+const DSS = require('./services/DSS/dss.service')
+const BFM = require('./services/BFM/bfm.resource.service')
 const getFlightDateList = require('./services/flightDates.service')
 const csvToJsonConverter = require('./services/csvToJsonConverter.service')
 
 //get DSS part: 
-DSS.getTransferAirportList((err, list) => {
-  console.log('err: ', err)
-  console.log('list: ', list)
-})
-
+// DSS.getTransferAirportList((err, list) => {
+//   console.log('err: ', err)
+//   console.log('list: ', list)
+// })
 
 //csv to json part
 // csvToJsonConverter((json) => {
@@ -18,3 +16,17 @@ DSS.getTransferAirportList((err, list) => {
 
 //get departure and arrival dates
 // console.log(getFlightDateList())
+
+// BFM call example
+BFM.getBFM((err, data) => {
+  console.log('err: ', err);
+  console.log('data: ', data);
+})
+
+// const getToken = () => {
+//   clientid = 'V1:krnnrjbso0jsk242:DEVCENTER:EXT'
+//   secret = 'uY39dPAa'
+//   return btoa(btoa(clientid) + ':' + btoa(secret))
+// }
+
+// getToken()

@@ -81,6 +81,8 @@ const DSSResource = {
       return res.text()
     }).then(html => {
         cb(null, new JSDOM(html))
+      }).catch((error) => {
+        cb(error)
       })
   }
 }
