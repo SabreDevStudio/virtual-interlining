@@ -1,5 +1,5 @@
 const DSS = require('./services/DSS/dss.service')
-const BFM = require('./services/BFM/bfm.resource.service')
+const BFMresource = require('./services/BFM/bfm.resource.service')
 const getFlightDateList = require('./services/flightDates.service')
 const csvToJsonConverter = require('./services/csvToJsonConverter.service')
 
@@ -17,19 +17,8 @@ const csvToJsonConverter = require('./services/csvToJsonConverter.service')
 //get departure and arrival dates
 // console.log(getFlightDateList())
 
-// BFM call example
-BFM.getBFM((err, data) => {
-  console.log('err: ', err);
-  console.log('data: ', data);
+// BFMresource call example
+BFMresource.getBFM((err, data) => {
+    if (err) throw new Error(err)
+    console.log('data: ', data);
 })
-
-//https://developer.sabre.com/docs/read/rest_apis/air/search/instaflights_search
-
-// const getToken = () => {
-//   clientid = 'V1:krnnrjbso0jsk242:DEVCENTER:EXT'
-// //secret = 'uY39dPAa'
-//   secret = 'blinD*sabre29'
-//   return btoa(btoa(clientid) + ':' + btoa(secret))
-// }
-
-// getToken()

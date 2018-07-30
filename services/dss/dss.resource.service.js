@@ -1,9 +1,10 @@
 'use strict'
 
 const {JSDOM} = require('jsdom')
-const fetch = require('node-fetch')
 const js2xmlparser = require('js2xmlparser')
 const jsHelper = require('../jsHelper.service')
+const request = require('request');
+
 
 const getRequest = (origin, destination, date) => {
   return {
@@ -72,18 +73,16 @@ const getheaders = () => {
 
 const DSSResource = {
   getTransferAirport: (origin, destination, date, cb) => {
-    fetch('http://utt.cert.sabre.com/utt/dss/sendrequest', {
-      method: 'POST',
-      body: getOneLinedBody(origin, destination, date),
-      headers: getheaders()
-    }).then(res => {
-      if (res.status !== 200) cb(`Status: ${res.status}, ${res.statusText}`)
-      return res.text()
-    }).then(html => {
-        cb(null, new JSDOM(html))
-      }).catch((error) => {
-        cb(error)
-      })
+    request.post({
+      host: 'http://utt.cert.sabre.com',
+      path: '/utt/dss/sendrequest',
+      headers: getheaders(),
+      url: 'http://utt.cert.sabre.com/utt/dss/sendrequest',
+      body:    getOneLinedBody(origin, destination, date)
+    }, (error, response, body) => {
+        if (error) cb(error)
+        cb(null, new JSDOM(body))
+    })
   }
 }
 

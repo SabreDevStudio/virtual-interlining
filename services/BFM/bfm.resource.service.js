@@ -1,35 +1,27 @@
 'use strict'
 
-const fetch = require('node-fetch')
-
-const getBody = () => {
-  return {}
-}
-
-const getheaders = () => {
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer T1RLAQJsdVISgVfV8wh1bw/fgkPt9GFY1BAkMMPjNPxnTwxCmt3lDjm3AADANnzH54Ro6t/f5XEwnQ48aWL88RoplaCBdTmweXO+SiMtZlp08Ycfi1z7V0tfd+J6rgiX0t8JOCWtcQmZGWeWauX1d3ZpnYwlTzLaxAfngjOaYjiDiVOIEIhmBTxGGk7Y7e5lVu8JDs+0yowBzS8NMv2tLkEWCtjLTP5UzjYhSad7XMQB0XXvPlKKMSH25YNWTbXsHPXx9mzCIVCl3Kcb6Kok31/2D/H4ClkrkX5ndFfPaWc/BHzPtRQckpkEx7WH'
-    }
-}
+const request = require('request');
+const proxyUrl = 'http://sg0301761:blinD*s*abre__29@www-ad-proxy.sabre.com:80/'
 
 const BFMResource = {
   getBFM: cb => {
-    fetch('https://api.sabre.com/v4.2.0/shop/flights?mode=live', {
-      method: 'POST',
+    const getBody = () => {
+      return {"OTA_AirLowFareSearchRQ":{"OriginDestinationInformation":[{"DepartureDateTime":"2018-08-13T00:00:00","DestinationLocation":{"LocationCode":"NYC"},"OriginLocation":{"LocationCode":"FRA"},"RPH":"1","TPA_Extensions":{}},{"DepartureDateTime":"2018-08-27T00:00:00","DestinationLocation":{"LocationCode":"FRA"},"OriginLocation":{"LocationCode":"NYC"},"RPH":"2","TPA_Extensions":{}}],"POS":{"Source":[{"RequestorID":{"CompanyName":{"Code":"TN"},"ID":"REQ.ID","Type":"0.AAA.X"},"PseudoCityCode":"F8SE"}]},"TPA_Extensions":{"IntelliSellTransaction":{"RequestType":{"Name":"200ITINS"}}},"TravelPreferences":{"CabinPref":[{"Cabin":"Y"}],"TPA_Extensions":{"NumTrips":{"Number":200},"FlexibleFares":{"FareParameters":[{}]}}},"TravelerInfoSummary":{"AirTravelerAvail":[{"PassengerTypeQuantity":[{"Code":"ADT","Quantity":1}]}],"PriceRequestInformation":{"TPA_Extensions":{"BrandedFareIndicators":{"ReturnCheapestUnbrandedFare":{"Ind":true},"SingleBrandedFare":true,"MultipleBrandedFares":false}}}}}}
+    }
+
+    request
+    .defaults({'proxy': proxyUrl})
+    .post({
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer T1RLAQJsdVISgVfV8wh1bw/fgkPt9GFY1BAkMMPjNPxnTwxCmt3lDjm3AADANnzH54Ro6t/f5XEwnQ48aWL88RoplaCBdTmweXO+SiMtZlp08Ycfi1z7V0tfd+J6rgiX0t8JOCWtcQmZGWeWauX1d3ZpnYwlTzLaxAfngjOaYjiDiVOIEIhmBTxGGk7Y7e5lVu8JDs+0yowBzS8NMv2tLkEWCtjLTP5UzjYhSad7XMQB0XXvPlKKMSH25YNWTbXsHPXx9mzCIVCl3Kcb6Kok31/2D/H4ClkrkX5ndFfPaWc/BHzPtRQckpkEx7WH'
-        },
-      body: {}
-    }).then(res => {
-      if (res.status !== 200) cb(`Status: ${res.status}, ${res.statusText}`)
-      return res.text()
-    }).then(data => {
-        cb(null, data)
-      }).catch((error) => {
-        cb(error);
-      });
+        'Content-Type': 'application/json;charset=UTF-8'
+      },
+      url: 'https://sabreapibridge.crt.aws.sabrenow.com/sabreapibridge/api/v4.1.0/shop/flights?mode=live',
+      body: getBody(),
+      json: true
+    }, function(err, response, body){
+      if(err) cb(err)
+      cb(null, body);
+    });
   }
 }
 
