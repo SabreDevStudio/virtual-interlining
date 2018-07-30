@@ -2,11 +2,9 @@
 
 const csv = require('csvtojson')
 
-const getJson = cb => {
-  csv({
-    noheader: true,
-    output: "line"
-  }).fromFile('./csv/NO.csv').then(jsonObj => cb(jsonObj))
-}
-
-module.exports = getJson
+module.exports = () => new Promise((resolve, reject) => {
+  csv({noheader: true, output: "line"})
+    .on('error', err => reject(err))
+    .fromFile('./csv/NO.csv')
+    .then(jsonObj => resolve(jsonObj))
+})
