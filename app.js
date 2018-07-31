@@ -1,47 +1,85 @@
 const DSS = require('./services/DSS/dss.service')
 const BFMresource = require('./services/BFM/bfm.resource.service')
+const DSSresource = require('./services/DSS/dss.resource.service')
 const getFlightDateList = require('./services/flightDates.service')
 const csvToJsonConverter = require('./services/csvToJsonConverter.service')
+const jsHelper = require('./services/jsHelper.service')
 
-// function resolveAfter2Seconds(x) {
-//   return new Promise(resolve => {
-//     setTimeout(() => {
-//       resolve(x);
-//     }, 2000);
-//   });
-// }
+async function processArray(array) {
+  for (const item of array) {
+    let BFMdetails = {
+      DEPLocation: 'FRA',
+      ARRLocation: 'KRK',
+      DEPdateTimeLeg1: item.DEP,
+      DEPdateTimeLeg2: item.ARR
+    }
+    await BFMresource.getBFM(BFMdetails)
+  }
+  console.log('done!');
+}
 
-// async function add1(x) {
-//   const a = await resolveAfter2Seconds(20);
-//   const b = await resolveAfter2Seconds(30);
-//   return x + a + b;
-// }
+async function processArrayParalel(flightList) {
+  const promises = flightList.map(flight => {
+    
+    return BFMresource.getBFM({
+      DEPLocation: flight.DEPLocation,
+      ARRLocation: flight.ARRLocation,
+      DEPdateTimeLeg1: flight.DEPdateTimeLeg1,
+      DEPdateTimeLeg2: flight.DEPdateTimeLeg2
+    })
+  })
 
-// add1(10).then(v => {
-//   console.log(v);  // prints 60 after 4 seconds.
-// });
+  await Promise.all(promises)
+  console.log('done!');
+}
 
-//1 csv to json part
+const getFullFlightsList = (flightPoints, flightDates) => {
+  let fullList = []
+
+  flightPoints.forEach(points => {
+    flightDates.forEach(dates => {
+      fullList.push({
+        DEPLocation: points.DEP,
+        ARRLocation: points.ARR,
+        DEPdateTimeLeg1: dates.DEP,
+        DEPdateTimeLeg2: dates.ARR
+      })
+    })
+  });
+
+  return fullList
+}
+
 csvToJsonConverter().then(data => {
-  console.log(data);
+  //1 csv to json part
+  let flightPoints = jsHelper.fromToParser(data)
   //2 get departure and arrival dates
-  console.log(getFlightDateList())
+  let flightDates = getFlightDateList()
+  let allFlights = getFullFlightsList(flightPoints, flightDates)
+  //3 BFMresource call
+  // console.log('allFlights 1', allFlights[1]);
+  // console.log('allFlights 423', allFlights[423]);
+  // console.log('allFlights 424', allFlights[424]);
+  // console.log('allFlights 425', allFlights[425]);
+  processArrayParalel(allFlights.slice(0, 35))
+
 }, err => {
   console.log('err: ', err);
 })
-
-
-//3 BFMresource call example
-// BFMresource.getBFM((err, data) => {
-//   if (err) throw new Error(err)
-//   console.log('data: ', data);
-// })
 
 
 //4 get DSS part: 
 // DSS.getTransferAirportList((err, list) => {
 //   console.log('err: ', err)
 //   console.log('list: ', list)
+// })
+
+// DSSresource.getTransferAirport('LON', 'KRK', '2018-08-12', (err, data) => {
+//   if (!err) {
+//     // console.log('data: ', data);
+//     // let mmpList = DSS.getMmpList(data)
+//     // console.log(DSS.getMmlList(mmpList))
+//   }
 // })
 
 //5 BFMresource call example

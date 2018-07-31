@@ -37,6 +37,26 @@ const jsHelper = {
 
   logIt: data => {
     fs.writeFile('log.json', JSON.stringify(data), 'utf8', () => {});
+  },
+
+  fromToParser: list => {
+    return list.map(el => {
+      return {
+        DEP: el.split('-')[0],
+        ARR: el.split('-')[1]
+      }
+    })
+  },
+
+  getFilteredDate: d => {
+    //"2018-08-13T00:00:00"
+    let year = d.getFullYear()
+    let month = (d.getMonth() + '').length === 1 ? `0${d.getMonth()}` : d.getMonth()
+    let date = (d.getDate() + '').length === 1 ? `0${d.getDate()}` : d.getDate()
+    let hours = (d.getHours() + '').length === 1 ? `0${d.getHours()}` : d.getHours()
+    let minutes = (d.getMinutes() + '').length === 1 ? `0${d.getMinutes()}` : d.getMinutes()
+    let seconds = (d.getSeconds() + '').length === 1 ? `0${d.getSeconds()}` : d.getSeconds()
+    return `${year}-${month}-${date}T${hours}:${minutes}:${seconds}`
   }
 }
 

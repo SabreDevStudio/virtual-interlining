@@ -1,27 +1,28 @@
 'use strict'
+const jsHelper = require('../jsHelper.service')
 
-const getBFMBody = () => {
+const getBFMBody = BFMdetails => {
   return {
     "OTA_AirLowFareSearchRQ": {
       "OriginDestinationInformation": [
         {
-          "DepartureDateTime": "2018-08-13T00:00:00",
+          "DepartureDateTime": jsHelper.getFilteredDate(BFMdetails.DEPdateTimeLeg1),
           "DestinationLocation": {
-            "LocationCode": "NYC"
+            "LocationCode": BFMdetails.ARRLocation
           },
           "OriginLocation": {
-            "LocationCode": "FRA"
+            "LocationCode": BFMdetails.DEPLocation
           },
           "RPH": "1",
           "TPA_Extensions": {}
         },
         {
-          "DepartureDateTime": "2018-08-27T00:00:00",
+          "DepartureDateTime": jsHelper.getFilteredDate(BFMdetails.DEPdateTimeLeg2),
           "DestinationLocation": {
-            "LocationCode": "FRA"
+            "LocationCode": BFMdetails.DEPLocation
           },
           "OriginLocation": {
-            "LocationCode": "NYC"
+            "LocationCode": BFMdetails.ARRLocation
           },
           "RPH": "2",
           "TPA_Extensions": {}
@@ -92,4 +93,4 @@ const getBFMBody = () => {
   }
 }
 
-module.exports = getBFMBody()
+module.exports = getBFMBody
