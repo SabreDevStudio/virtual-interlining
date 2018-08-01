@@ -72,18 +72,18 @@ const getheaders = () => {
 }
 
 const DSSResource = {
-  getTransferAirport: (origin, destination, date, cb) => {
-    request.post({
-      host: 'http://utt.cert.sabre.com',
-      path: '/utt/dss/sendrequest',
-      headers: getheaders(),
-      url: 'http://utt.cert.sabre.com/utt/dss/sendrequest',
-      body: getOneLinedBody(origin, destination, date)
-    }, (error, response, body) => {
-      console.log('body: ', body);
-      
-        if (error) cb(error)
-        cb(null, new JSDOM(body))
+  getTransferAirport: (origin, destination, date) => {
+    return new Promise((resolve, reject) => {
+      request.post({
+        host: 'http://utt.cert.sabre.com',
+        path: '/utt/dss/sendrequest',
+        headers: getheaders(),
+        url: 'http://utt.cert.sabre.com/utt/dss/sendrequest',
+        body: getOneLinedBody(origin, destination, date)
+      }, (error, response, body) => {
+          if (error) reject(error)
+          resolve(new JSDOM(body))
+      })
     })
   }
 }

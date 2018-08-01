@@ -1,7 +1,5 @@
 'use strict'
 
-const fs = require('fs');
-
 const jsHelper = {
   toOneLineString: structure => {
     let oneLineString = '';
@@ -35,8 +33,13 @@ const jsHelper = {
     }, {})
   },
 
-  logIt: data => {
-    fs.writeFile('log.json', JSON.stringify(data), 'utf8', () => {});
+  logIt: (wstream, BFMdetails, response, mmpListdata) => {
+    process.stdout.write('.');
+    console.log(mmpListdata);
+    
+    wstream.write(`[${BFMdetails.DEPLocation} -> ${BFMdetails.ARRLocation}]\
+    [${jsHelper.getFilteredDate(BFMdetails.DEPdateTimeLeg1)} -> ${jsHelper.getFilteredDate(BFMdetails.DEPdateTimeLeg2)}]\
+    [${response.statusCode}]\n`)
   },
 
   fromToParser: list => {
@@ -49,7 +52,7 @@ const jsHelper = {
   },
 
   getFilteredDate: d => {
-    //"2018-08-13T00:00:00"
+    //here is schema: "2018-08-13T00:00:00"
     let year = d.getFullYear()
     let month = (d.getMonth() + '').length === 1 ? `0${d.getMonth()}` : d.getMonth()
     let date = (d.getDate() + '').length === 1 ? `0${d.getDate()}` : d.getDate()

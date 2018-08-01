@@ -1,6 +1,7 @@
 'use strict'
 const jsHelper = require('../jsHelper.service')
 
+
 const getBFMBody = BFMdetails => {
   return {
     "OTA_AirLowFareSearchRQ": {
