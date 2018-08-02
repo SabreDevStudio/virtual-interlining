@@ -1,13 +1,11 @@
 'use strict'
-const jsHelper = require('../jsHelper.service')
-
 
 const getBFMBody = BFMdetails => {
   return {
     "OTA_AirLowFareSearchRQ": {
       "OriginDestinationInformation": [
         {
-          "DepartureDateTime": jsHelper.getFilteredDate(BFMdetails.DEPdateTimeLeg1),
+          "DepartureDateTime": BFMdetails.DEPdateTimeLeg1,
           "DestinationLocation": {
             "LocationCode": BFMdetails.ARRLocation
           },
@@ -18,7 +16,7 @@ const getBFMBody = BFMdetails => {
           "TPA_Extensions": {}
         },
         {
-          "DepartureDateTime": jsHelper.getFilteredDate(BFMdetails.DEPdateTimeLeg2),
+          "DepartureDateTime": BFMdetails.DEPdateTimeLeg2,
           "DestinationLocation": {
             "LocationCode": BFMdetails.DEPLocation
           },
