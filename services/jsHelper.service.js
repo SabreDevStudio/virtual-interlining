@@ -34,16 +34,10 @@ const jsHelper = {
     }, {})
   },
 
-  logIt: (wstream, BFMdetails, BFMresponse, leg1DSSData, leg2DSSdata) => {
-    console.log('PricedItinCount: ', BFMresponse.body.OTA_AirLowFareSearchRS.PricedItinCount);
-    console.log(BFMdetails);
-    console.log('leg1DSSData: ', leg1DSSData);
-    console.log('leg2DSSdata: ', leg2DSSdata);
-    process.stdout.write('................................');
-    
-    // wstream.write(`[${BFMdetails.DEPLocation} -> ${BFMdetails.ARRLocation}]\
-    // [${jsHelper.getFilteredDate(BFMdetails.DEPdateTimeLeg1)} -> ${jsHelper.getFilteredDate(BFMdetails.DEPdateTimeLeg2)}]\
-    // [${response.statusCode}]\n`)
+  logIt: currentFlight => {
+    jsHelper.storageContainer.push(currentFlight)
+    console.log('currentFlight: ', currentFlight);
+    // wstream.write(storageContainer)
   },
 
   fromToParser: list => {
@@ -105,36 +99,70 @@ const jsHelper = {
     }
   },
   
-  processArrayParalel: async function (flightList, BFMresource, DSSresource, DSS) {
-    const wstream = fs.createWriteStream(`${new Date().getTime()}_log.txt`);
-    let BFMresponseData, leg1DSSData, leg2DSSdata;
+  storageContainer: [],
 
-    const flightListPromises = flightList.map(flight => {
-      process.stdout.write(':');
-      let BFMdetails = jsHelper.getBFMdetails(flight)
+  flightSchema: () => new Object({
+    GDS: {},
+    GDStoLCC: {leg1:[], leg2:[]},
+    LCCtoGDS: {leg1:[], leg2:[]}
+  }),
+
+  DSSsigmentationByLegAndWay: (DSSlist, currentFlight, leg) => {
+    DSSlist.forEach(el => {
+      if (el['1'].TCR === 'true' && el['2'].LCC === 'true') {
+        currentFlight.GDStoLCC[leg].push(el)
+      } else if (el['1'].LCC === 'true' && el['2'].TCR === 'true') {
+        currentFlight.LCCtoGDS[leg].push(el)
+      }
+    })
+  },
+
+  processBFMforDSS: async function (dssList, flight) {
+    dssList.forEach(el => {
+      console.log({ORG: el['1'].ORG, DST: el['1'].DST, date:flight.DEPdateTimeLeg1})//BFM one way call
+      console.log({ORG: el['2'].ORG, DST: el['2'].DST, date:flight.DEPdateTimeLeg1})//BFM one way call
+      //el = 2 BFM one way calls
+      console.log('-----------------');
+      
+    })
+    
+      // const dssPromises = dssList.map(el => {
+      //   return BFMresource.getBFM({
+
+      //   })
+      // })
+
+      // await Promise.all(flightListPromises)
+    
+  },
+
+  processArrayParalel: async function (flightList, BFMresource, DSSresource, DSS) {
+    // const wstream = fs.createWriteStream(`./logs/${new Date().getTime()}_log.txt`);
+    const flightListPromises = flightList.map(flightInitQuery => {
+      let currentFlight = jsHelper.flightSchema()
+      let BFMdetails = jsHelper.getBFMdetails(flightInitQuery)
 
       return BFMresource.getBFM(BFMdetails)
       .then(BFMresponse => {
-        BFMresponseData = BFMresponse
+        currentFlight.GDS = BFMresponse.body
         return DSSresource.getTransferAirport(BFMdetails.DEPLocation, BFMdetails.ARRLocation, BFMdetails.DEPdateTimeLeg1)
       }).then(DSSdataLeg1 => {
-        leg1DSSData = DSS.getMmlList(DSS.getMmpList(DSSdataLeg1))
-        leg1DSSlccData = []
-        leg1DSSgdsData = []
+        jsHelper.DSSsigmentationByLegAndWay(DSS.getMmlList(DSS.getMmpList(DSSdataLeg1)), currentFlight, 'leg1')
         return DSSresource.getTransferAirport(BFMdetails.ARRLocation, BFMdetails.DEPLocation, BFMdetails.DEPdateTimeLeg2)
       }).then(DSSdataLeg2 => {
-        leg2DSSdata = DSS.getMmlList(DSS.getMmpList(DSSdataLeg2))
-        leg2DSSlccData = []
-        leg2DSSgdsData = []
-        jsHelper.logIt(wstream, BFMdetails, BFMresponseData, leg1DSSData, leg2DSSdata)
+        jsHelper.DSSsigmentationByLegAndWay(DSS.getMmlList(DSS.getMmpList(DSSdataLeg2)), currentFlight, 'leg2')
+        return jsHelper.processBFMforDSS(currentFlight.GDStoLCC.leg1, flightInitQuery)
+      }).then(() => {
+        
+        // jsHelper.logIt(currentFlight)
       })
-      //split DSS by GDS-LCC and LCC-GDS
       //time to call BFM with DSSdata1 for leg1
       //time to call BFM with DSSdata2 for leg2
+      
     })
-
+    
     await Promise.all(flightListPromises)
-    wstream.end();
+    // wstream.end();
     console.log('done!');
   }
 }

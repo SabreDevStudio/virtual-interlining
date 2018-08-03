@@ -81,8 +81,13 @@ const DSSResource = {
         url: 'http://utt.cert.sabre.com/utt/dss/sendrequest',
         body: getOneLinedBody(origin, destination, date)
       }, (error, response, body) => {
-          if (error) reject(error)
-          resolve(new JSDOM(body))
+        if (error) {
+            process.stdout.write('0');
+            reject(error)
+          } else {
+            process.stdout.write('1');
+            resolve(new JSDOM(body))
+          }
       })
     })
   }

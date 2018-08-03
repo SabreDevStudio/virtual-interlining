@@ -17,12 +17,3 @@ csvToJsonConverter().then(data => {
 }, err => {
   console.log('csv To Json Converter err: ', err);
 })
-
-
-//4 get DSS part: 
-// DSSresource.getTransferAirport('LON', 'KRK', '2018-08-12').then(data => {
-//   let mmpList = DSS.getMmpList(data)
-//   console.log(DSS.getMmlList(mmpList))
-// }, err => {
-//   console.log('DSSresource error: ',err)
-// })
