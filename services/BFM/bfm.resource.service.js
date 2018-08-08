@@ -16,10 +16,7 @@ const BFMResource = {
           json: true
         }, function(err, response) {
           if (response.body && !response.body.errorCode) {
-          process.stdout.write('1');
             resolve(new Promise(resolve => resolve(response)))
-          } else {
-            process.stdout.write('0');
           }
         })
     })

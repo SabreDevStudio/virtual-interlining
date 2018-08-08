@@ -103,37 +103,35 @@ const jsHelper = {
 
   flightSchema: () => new Object({
     GDS: {},
-    GDStoLCC: {leg1:[], leg2:[]},
-    LCCtoGDS: {leg1:[], leg2:[]}
+    GDStoLCC: {leg1:[], leg2:[], roundTripList: []},
+    LCCtoGDS: {leg1:[], leg2:[], roundTripList: []}
   }),
 
   DSSsigmentationByLegAndWay: (DSSlist, currentFlight, leg) => {
     DSSlist.forEach(el => {
       if (el['1'].TCR === 'true' && el['2'].LCC === 'true') {
         currentFlight.GDStoLCC[leg].push(el)
-      } else if (el['1'].LCC === 'true' && el['2'].TCR === 'true') {
+      }
+      if (el['1'].LCC === 'true' && el['2'].TCR === 'true') {
         currentFlight.LCCtoGDS[leg].push(el)
       }
     })
   },
 
-  processBFMforDSS: async function (dssList, flight) {
-    dssList.forEach(el => {
-      console.log({ORG: el['1'].ORG, DST: el['1'].DST, date:flight.DEPdateTimeLeg1})//BFM one way call
-      console.log({ORG: el['2'].ORG, DST: el['2'].DST, date:flight.DEPdateTimeLeg1})//BFM one way call
-      //el = 2 BFM one way calls
-      console.log('-----------------');
-      
-    })
-    
-      // const dssPromises = dssList.map(el => {
-      //   return BFMresource.getBFM({
+  filerLegView: leg => `${leg['1'].ORG} - ${leg['1'].DCT} - ${leg['2'].OCT} - ${leg['2'].DST}`,
+  filterLegViewReversed: leg => `${leg['2'].DST} - ${leg['2'].OCT} - ${leg['1'].DCT} - ${leg['1'].ORG}`,
 
-      //   })
-      // })
-
-      // await Promise.all(flightListPromises)
-    
+  processBFMviaDSS: (currentFlight, flightInitQuery, direction) => {
+    process.stdout.write('.')
+    if (currentFlight[direction].leg1.length && currentFlight[direction].leg2.length) {
+      currentFlight[direction].leg1.forEach(leg1el => {
+        currentFlight[direction].leg2.forEach(leg2el => {
+          if (jsHelper.filerLegView(leg1el) === jsHelper.filterLegViewReversed(leg2el)) {
+            currentFlight[direction].roundTripList.push(leg1el)
+          }
+        })
+      })
+    }
   },
 
   processArrayParalel: async function (flightList, BFMresource, DSSresource, DSS) {
@@ -151,14 +149,12 @@ const jsHelper = {
         return DSSresource.getTransferAirport(BFMdetails.ARRLocation, BFMdetails.DEPLocation, BFMdetails.DEPdateTimeLeg2)
       }).then(DSSdataLeg2 => {
         jsHelper.DSSsigmentationByLegAndWay(DSS.getMmlList(DSS.getMmpList(DSSdataLeg2)), currentFlight, 'leg2')
-        return jsHelper.processBFMforDSS(currentFlight.GDStoLCC.leg1, flightInitQuery)
-      }).then(() => {
-        
-        // jsHelper.logIt(currentFlight)
+        jsHelper.processBFMviaDSS(currentFlight, flightInitQuery, 'GDStoLCC')
+        jsHelper.processBFMviaDSS(currentFlight, flightInitQuery, 'LCCtoGDS')
+        if (currentFlight.GDStoLCC.roundTripList.length || currentFlight.LCCtoGDS.roundTripList.length) {
+          console.log(currentFlight)
+        }
       })
-      //time to call BFM with DSSdata1 for leg1
-      //time to call BFM with DSSdata2 for leg2
-      
     })
     
     await Promise.all(flightListPromises)

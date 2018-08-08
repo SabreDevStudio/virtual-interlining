@@ -13,7 +13,7 @@ csvToJsonConverter().then(data => {
   let flightDates = getFlightDateList()
   let allFlights = jsHelper.getFullFlightsList(flightPoints, flightDates)
   //3 BFMresource call
-  jsHelper.processArrayParalel(allFlights.slice(0, 100), BFMresource, DSSresource, DSS)
+  jsHelper.processArrayParalel(allFlights.slice(0, 1000), BFMresource, DSSresource, DSS)
 }, err => {
   console.log('csv To Json Converter err: ', err);
 })

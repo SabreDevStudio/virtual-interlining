@@ -82,10 +82,8 @@ const DSSResource = {
         body: getOneLinedBody(origin, destination, date)
       }, (error, response, body) => {
         if (error) {
-            process.stdout.write('0');
             reject(error)
           } else {
-            process.stdout.write('1');
             resolve(new JSDOM(body))
           }
       })
