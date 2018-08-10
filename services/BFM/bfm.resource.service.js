@@ -16,10 +16,15 @@ const BFMResource = {
           body: BFM.getBFMbody(BFMdetails),
           json: true
         }, (err, response) => {
-          if (err) resolve()
-          jsHelper.logToStdout('bfm ')
-          if (response && response.body && !response.body.errorCode) {
-            resolve(response)
+          console.log('response: ', response.body);
+          
+          if (err) {
+            reject()
+          } else {
+            jsHelper.logToStdout(`bfm ${response.statusCode}`)
+            if (response && response.body && !response.body.errorCode) {
+              resolve(response)
+            }
           }
         })
     })

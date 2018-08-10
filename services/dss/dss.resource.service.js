@@ -82,7 +82,7 @@ const DSSResource = {
         body: getOneLinedBody(origin, destination, date)
       }, (error, response) => {
         jsHelper.logToStdout('dss ')
-        if (error) resolve()
+        if (error || !response) resolve()
         resolve(new JSDOM(response.body))
       })
     })

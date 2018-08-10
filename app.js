@@ -9,10 +9,10 @@ const BFM = require('./services/BFM/bfm.service')
 csvToJsonConverter().then(data => {
   let flightPoints = jsHelper.fromToParser(data)//csv to json
   let flightDates = getFlightDateList()//get departure and arrival dates
-  let allFlights = jsHelper.getFullFlightsList(flightPoints, flightDates).slice(0, 400)
+  let allFlights = jsHelper.getFullFlightsList(flightPoints, flightDates).slice(0, 500)
   console.log('allFlights length: ', allFlights.length)
-  jsHelper.processArrayParalel(allFlights, BFMresource, DSSresource, DSS, BFM)
-  // jsHelper.processArray(allFlights, BFMresource, DSSresource, DSS, BFM)
+  // jsHelper.processArrayParalel(allFlights, BFMresource, DSSresource, DSS, BFM)
+  jsHelper.processArray(allFlights, BFMresource, DSSresource, DSS, BFM)
 }, err => {
   console.log('csv To Json Converter err: ', err);
 })

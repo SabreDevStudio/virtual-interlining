@@ -97,33 +97,22 @@ const BFM = {
 
   getBFMroundTripViaCity2: (BFMresource, currentFlight, direction, flightInitQuery) => {
     return new Promise((resolve, reject) => {
-      BFMresource.getBFM({
-        DEPLocation: currentFlight[direction].roundTripList[0]['1'].OCT,
-        ARRLocation: currentFlight[direction].roundTripList[0]['1'].DCT,
-        DEPdateTimeLeg1: jsHelper.getFilteredDate(flightInitQuery.DEPdateTimeLeg1),
-        DEPdateTimeLeg2: jsHelper.getFilteredDate(flightInitQuery.DEPdateTimeLeg2)
-      }).then(chunk1 => {
-        
-        if (chunk1.statusCode === 200) {
-          console.log('chunk1.statusCode: ', chunk1.statusCode);
-          currentFlight[direction].snowMan.chunk1.push(chunk1.body)
-        }
-
-        return BFMresource.getBFM({
-          DEPLocation: currentFlight[direction].roundTripList[0]['2'].DCT,
-          ARRLocation: currentFlight[direction].roundTripList[0]['2'].OCT,
+      if (currentFlight[direction].roundTripList.length) {
+        console.log('currentFlight[direction].roundTripList: ', currentFlight[direction].roundTripList)
+        BFMresource.getBFM({
+          DEPLocation: currentFlight[direction].roundTripList[0]['1'].ORG,
+          ARRLocation: currentFlight[direction].roundTripList[0]['1'].DCT,
           DEPdateTimeLeg1: jsHelper.getFilteredDate(flightInitQuery.DEPdateTimeLeg1),
           DEPdateTimeLeg2: jsHelper.getFilteredDate(flightInitQuery.DEPdateTimeLeg2)
+        }).then(chunk1 => {
+          console.log('chunk1====================================');
+          console.log(chunk1);
+          resolve(chunk1)
+          console.log('chunk1====================================');
         })
-      })
-      .then(chunk2 => {
-        if (chunk2.statusCode === 200) {
-          console.log('chunk2.statusCode: ', chunk2.statusCode);
-          currentFlight[direction].snowMan.chunk2.push(chunk2.body)
-        }
-          console.log('snowMan: ', currentFlight[direction].snowMan);
-          resolve()
-        })
+      } else {
+        resolve()
+      }
     })
   },
 
