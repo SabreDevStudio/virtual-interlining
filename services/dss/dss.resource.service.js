@@ -73,7 +73,7 @@ const getheaders = () => {
 
 const DSSResource = {
   getTransferAirport: (origin, destination, date) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
       request.post({
         host: 'http://utt.cert.sabre.com',
         path: '/utt/dss/sendrequest',
@@ -81,7 +81,6 @@ const DSSResource = {
         url: 'http://utt.cert.sabre.com/utt/dss/sendrequest',
         body: getOneLinedBody(origin, destination, date)
       }, (error, response) => {
-        jsHelper.logToStdout('dss ')
         if (error || !response) resolve()
         resolve(new JSDOM(response.body))
       })

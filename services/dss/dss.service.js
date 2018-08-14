@@ -33,7 +33,7 @@ const DSS = {
   
     return MMLLIST
   },
-  getTransferAirportList: (cb) => {
+  getTransferAirportList: cb => {
     dssResource.getTransferAirport('LON', 'KRK', '2018-08-12', (err, data) => {
       if (err) cb(err)
       let mmpList = DSS.getMmpList(data)

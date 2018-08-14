@@ -17,17 +17,6 @@ const BFM = {
             },
             "RPH": "1",
             "TPA_Extensions": {}
-          },
-          {
-            "DepartureDateTime": BFMdetails.DEPdateTimeLeg2,
-            "DestinationLocation": {
-              "LocationCode": BFMdetails.DEPLocation
-            },
-            "OriginLocation": {
-              "LocationCode": BFMdetails.ARRLocation
-            },
-            "RPH": "2",
-            "TPA_Extensions": {}
           }
         ],
         "POS": {
@@ -116,44 +105,71 @@ const BFM = {
     })
   },
 
-  getBFMroundTripViaCity: async function (BFMresource, currentFlight, direction, flightInitQuery) {
-    let promises = currentFlight[direction].roundTripList.map(roundTrip => {
-      console.log('roundTrip: ', roundTrip);
+  getBFMviaTransferPoint: async function (BFMresource, currentFlight) {
+      //handle currentFlight.directions.GDStoLCC
+      console.log('currentFlight: ', currentFlight);
       
-      return new Promise((resolve, reject) => {
-          BFMresource.getBFM({
-            DEPLocation: roundTrip['1'].OCT,
-            ARRLocation: roundTrip['1'].DCT,
-            DEPdateTimeLeg1: jsHelper.getFilteredDate(flightInitQuery.DEPdateTimeLeg1),
-            DEPdateTimeLeg2: jsHelper.getFilteredDate(flightInitQuery.DEPdateTimeLeg2)
+      if (currentFlight.directions.LCCtoGDS.source.length) {
+        for (const GDStoLCCitem of currentFlight.directions.LCCtoGDS.source) {
+          await BFMresource.getBFM({
+            DEPLocation: GDStoLCCitem['1'].OCT,
+            ARRLocation: GDStoLCCitem['1'].DCT,
+            DEPdateTimeLeg1: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1)
           }).then(chunk1 => {
-            
-            if (chunk1.statusCode === 200) {
-              console.log('chunk1.statusCode: ', chunk1.statusCode);
-              currentFlight[direction].snowMan.chunk1.push(chunk1.body)
-            }
+            currentFlight.directions.LCCtoGDS.chunk1 = chunk1
   
             return BFMresource.getBFM({
-              DEPLocation: roundTrip['2'].DCT,
-              ARRLocation: roundTrip['2'].OCT,
-              DEPdateTimeLeg1: jsHelper.getFilteredDate(flightInitQuery.DEPdateTimeLeg1),
-              DEPdateTimeLeg2: jsHelper.getFilteredDate(flightInitQuery.DEPdateTimeLeg2)
+              DEPLocation: GDStoLCCitem['2'].OCT,
+              ARRLocation: GDStoLCCitem['2'].DCT,
+              DEPdateTimeLeg1: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1)
             })
           })
           .then(chunk2 => {
-            if (chunk2.statusCode === 200) {
-              console.log('chunk2.statusCode: ', chunk2.statusCode);
-                currentFlight[direction].snowMan.chunk2.push(chunk2.body)
-              }
-              console.log('snowMan: ', currentFlight[direction].snowMan);
-              resolve()
-            })
-      })
-    })
+            currentFlight.directions.LCCtoGDS.chunk2 = chunk2
+            console.log('currentFlight===============: ', currentFlight);
+            
+            // resolve()
+          })
+        }
+      }
+      //handle currentFlight.directions.LCCtoGDS
+    
 
-    await Promise.all(promises)
-    // wstream.end();
-    console.log('done done done!');
+
+    // let promises = currentFlight.direction.roundTripList.map(roundTrip => {
+      
+      // return new Promise((resolve, reject) => {
+      //     BFMresource.getBFM({
+      //       DEPLocation: roundTrip['1'].OCT,
+      //       ARRLocation: roundTrip['1'].DCT,
+      //       DEPdateTimeLeg1: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1),
+      //       DEPdateTimeLeg2: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg2)
+      //     }).then(chunk1 => {
+            
+      //       if (chunk1.statusCode === 200) {
+      //         console.log('chunk1.statusCode: ', chunk1.statusCode);
+      //         currentFlight[direction].snowMan.chunk1.push(chunk1.body)
+      //       }
+  
+      //       return BFMresource.getBFM({
+      //         DEPLocation: roundTrip['2'].DCT,
+      //         ARRLocation: roundTrip['2'].OCT,
+      //         DEPdateTimeLeg1: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1),
+      //         DEPdateTimeLeg2: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg2)
+      //       })
+      //     })
+      //     .then(chunk2 => {
+      //       if (chunk2.statusCode === 200) {
+      //         console.log('chunk2.statusCode: ', chunk2.statusCode);
+      //           currentFlight[direction].snowMan.chunk2.push(chunk2.body)
+      //         }
+      //         console.log('snowMan: ', currentFlight[direction].snowMan);
+      //         resolve()
+      //       })
+      // })
+    // })
+
+    // await Promise.all(promises)  
   }
 }
 

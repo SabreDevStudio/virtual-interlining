@@ -76,33 +76,45 @@ const jsHelper = {
     return fullList
   },
 
+  handleBFMresponse: BFMresponse => {
+    console.log('BFM status: ', BFMresponse.statusCode)
+
+    if (BFMresponse && BFMresponse.statusCode === 200) {
+      // console.log('------------------body: ', BFMresponse.body)
+    }
+  },
+
   processArray: async function (flightList, BFMresource, DSSresource, DSS, BFM) {
     for (const flightInitQuery of flightList) {
-      console.log('====================================');
-      console.log('flightInitQuery: ', flightInitQuery);
-      console.log('====================================');
       let currentFlight = jsHelper.flightSchema()
+      currentFlight.flightInitQuery = flightInitQuery
       let BFMdetails = jsHelper.getBFMdetails(flightInitQuery)
 
       await BFMresource.getBFM(BFMdetails)
       .then(BFMresponse => {
-        currentFlight.GDS = BFMresponse.body
+        jsHelper.handleBFMresponse(BFMresponse)
+        currentFlight.GDS = BFMresponse.statusCode
         return DSSresource.getTransferAirport(BFMdetails.DEPLocation, BFMdetails.ARRLocation, BFMdetails.DEPdateTimeLeg1)
       })
-      // .then(DSSdataLeg1 => {
-      //   jsHelper.DSSsigmentationByLegAndWay(DSS.getMmlList(DSS.getMmpList(DSSdataLeg1)), currentFlight, 'leg1')
-      //   return DSSresource.getTransferAirport(BFMdetails.ARRLocation, BFMdetails.DEPLocation, BFMdetails.DEPdateTimeLeg2)
-      // })
+      .then(DSSdataLeg => {
+        currentFlight.directions = jsHelper.getSortedDSSbyDirection(DSS.getMmlList(DSS.getMmpList(DSSdataLeg)))
+        return BFM.getBFMviaTransferPoint(BFMresource, currentFlight)
+      })
+      .then(result => {
+
+      })
+      .catch(err => {
+        throw new Error(err)
+      })
+
       // .then(DSSdataLeg2 => {
-      //   jsHelper.DSSsigmentationByLegAndWay(DSS.getMmlList(DSS.getMmpList(DSSdataLeg2)), currentFlight, 'leg2')
+      //   jsHelper.getSortedDSSbyDirection(DSS.getMmlList(DSS.getMmpList(DSSdataLeg2)), currentFlight, 'leg2')
       //   jsHelper.findRoundTripItins(currentFlight, 'GDStoLCC')
       //   // jsHelper.findRoundTripItins(currentFlight, 'LCCtoGDS')
       //   return BFM.getBFMroundTripViaCity(BFMresource, currentFlight, 'GDStoLCC', flightInitQuery)
       //   // if (currentFlight.LCCtoGDS.roundTripList.length) {console.log('LCCtoGDS: ', currentFlight.LCCtoGDS.roundTripList)}
       // })
-      .catch(err => {
-        throw new Error(err)
-      })
+      
     }
     console.log('done!');
   },
@@ -120,19 +132,20 @@ const jsHelper = {
 
   flightSchema: () => new Object({
     GDS: {},
-    GDStoLCC: {leg1:[], leg2:[], roundTripList: [], snowMan:{chunk1:[], chunk2:[]}},
-    LCCtoGDS: {leg1:[], leg2:[], roundTripList: [], snowMan:{chunk1:[], chunk2:[]}}
+    directions: {}
   }),
 
-  DSSsigmentationByLegAndWay: (DSSlist, currentFlight, leg) => {
+  getSortedDSSbyDirection: DSSlist => {
+    let sortedDSSlist = {GDStoLCC:{source:[]}, LCCtoGDS:{source:[]}}
     DSSlist.forEach(el => {
       if (el['1'].TCR === 'true' && el['2'].LCC === 'true') {
-        currentFlight.GDStoLCC[leg].push(el)
+        sortedDSSlist.GDStoLCC.source.push(el)
       }
       if (el['1'].LCC === 'true' && el['2'].TCR === 'true') {
-        currentFlight.LCCtoGDS[leg].push(el)
+        sortedDSSlist.LCCtoGDS.source.push(el)
       }
     })
+    return sortedDSSlist
   },
 
   logToStdout: val => process.stdout.write(val),
@@ -152,38 +165,38 @@ const jsHelper = {
     }
   },
 
-  processArrayParalel: async function (flightList, BFMresource, DSSresource, DSS, BFM) {
-    // const wstream = fs.createWriteStream(`./logs/${new Date().getTime()}_log.txt`);
-    const flightListPromises = flightList.map(flightInitQuery => {
-      let currentFlight = jsHelper.flightSchema()
-      let BFMdetails = jsHelper.getBFMdetails(flightInitQuery)
+  // processArrayParalel: async function (flightList, BFMresource, DSSresource, DSS, BFM) {
+  //   // const wstream = fs.createWriteStream(`./logs/${new Date().getTime()}_log.txt`);
+  //   const flightListPromises = flightList.map(flightInitQuery => {
+  //     let currentFlight = jsHelper.flightSchema()
+  //     let BFMdetails = jsHelper.getBFMdetails(flightInitQuery)
 
-      return BFMresource.getBFM(BFMdetails)
-      .then(BFMresponse => {
-        currentFlight.GDS = BFMresponse.body
-        return DSSresource.getTransferAirport(BFMdetails.DEPLocation, BFMdetails.ARRLocation, BFMdetails.DEPdateTimeLeg1)
-      })
-      .then(DSSdataLeg1 => {
-        jsHelper.DSSsigmentationByLegAndWay(DSS.getMmlList(DSS.getMmpList(DSSdataLeg1)), currentFlight, 'leg1')
-        return DSSresource.getTransferAirport(BFMdetails.ARRLocation, BFMdetails.DEPLocation, BFMdetails.DEPdateTimeLeg2)
-      })
-      .then(DSSdataLeg2 => {
-        jsHelper.DSSsigmentationByLegAndWay(DSS.getMmlList(DSS.getMmpList(DSSdataLeg2)), currentFlight, 'leg2')
-        jsHelper.findRoundTripItins(currentFlight, 'GDStoLCC')
-        // jsHelper.findRoundTripItins(currentFlight, 'LCCtoGDS')
-        return BFM.getBFMroundTripViaCity2(BFMresource, currentFlight, 'GDStoLCC', flightInitQuery)
-        // if (currentFlight.LCCtoGDS.roundTripList.length) {console.log('LCCtoGDS: ', currentFlight.LCCtoGDS.roundTripList)}
-      }).then(() => {
+  //     return BFMresource.getBFM(BFMdetails)
+  //     .then(BFMresponse => {
+  //       currentFlight.GDS = BFMresponse.body
+  //       return DSSresource.getTransferAirport(BFMdetails.DEPLocation, BFMdetails.ARRLocation, BFMdetails.DEPdateTimeLeg1)
+  //     })
+  //     .then(DSSdataLeg1 => {
+  //       jsHelper.getSortedDSSbyDirection(DSS.getMmlList(DSS.getMmpList(DSSdataLeg1)), currentFlight, 'leg1')
+  //       return DSSresource.getTransferAirport(BFMdetails.ARRLocation, BFMdetails.DEPLocation, BFMdetails.DEPdateTimeLeg2)
+  //     })
+  //     .then(DSSdataLeg2 => {
+  //       jsHelper.getSortedDSSbyDirection(DSS.getMmlList(DSS.getMmpList(DSSdataLeg2)), currentFlight, 'leg2')
+  //       jsHelper.findRoundTripItins(currentFlight, 'GDStoLCC')
+  //       // jsHelper.findRoundTripItins(currentFlight, 'LCCtoGDS')
+  //       return BFM.getBFMroundTripViaCity2(BFMresource, currentFlight, 'GDStoLCC', flightInitQuery)
+  //       // if (currentFlight.LCCtoGDS.roundTripList.length) {console.log('LCCtoGDS: ', currentFlight.LCCtoGDS.roundTripList)}
+  //     }).then(() => {
 
-      }).catch(err => {
-        throw new Error(err)
-      })
-    })
+  //     }).catch(err => {
+  //       throw new Error(err)
+  //     })
+  //   })
     
-    await Promise.all(flightListPromises)
-    // wstream.end();
-    console.log('done!');
-  }
+  //   await Promise.all(flightListPromises)
+  //   // wstream.end();
+  //   console.log('done!');
+  // }
 }
 
 module.exports = jsHelper
