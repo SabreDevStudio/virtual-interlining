@@ -108,10 +108,12 @@ const jsHelper = {
       })
       .then(DSSdataLeg => {
         currentFlight.directions = jsHelper.getSortedDSSbyDirection(DSS.getMmlList(DSS.getMmpList(DSSdataLeg)))
-        return BFM.getBFMviaTransferPoint(BFMresource, currentFlight)
+        return BFM.getBFMviaTransferPoint(BFMresource, currentFlight, 'LCCtoGDS')
       })
       .then(result => {
-
+        console.log('**************************************************************************');
+        
+        return BFM.getBFMviaTransferPoint(BFMresource, currentFlight, 'GDStoLCC')
       })
       .catch(err => {
         throw new Error(err)
@@ -164,14 +166,14 @@ const jsHelper = {
 
   logToStdout: val => process.stdout.write(val),
 
-  filerLegView: leg => `${leg['1'].OCT} - ${leg['1'].DCT} - ${leg['2'].OCT} - ${leg['2'].DCT}`,
+  filterLegView: leg => `${leg['1'].OCT} - ${leg['1'].DCT} - ${leg['2'].OCT} - ${leg['2'].DCT}`,
   filterLegViewReversed: leg => `${leg['2'].DCT} - ${leg['2'].OCT} - ${leg['1'].DCT} - ${leg['1'].OCT}`,
 
   findRoundTripItins: (currentFlight, direction) => {
     if (currentFlight[direction].leg1.length && currentFlight[direction].leg2.length) {
       currentFlight[direction].leg1.forEach(leg1el => {
         currentFlight[direction].leg2.forEach(leg2el => {
-          if (jsHelper.filerLegView(leg1el) === jsHelper.filterLegViewReversed(leg2el)) {
+          if (jsHelper.filterLegView(leg1el) === jsHelper.filterLegViewReversed(leg2el)) {
             currentFlight[direction].roundTripList.push(leg1el)
           }
         })

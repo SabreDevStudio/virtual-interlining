@@ -105,17 +105,20 @@ const BFM = {
     })
   },
 
-  getBFMviaTransferPoint: async function (BFMresource, currentFlight) {
-      //handle currentFlight.directions.GDStoLCC
-      
-      if (currentFlight.directions.LCCtoGDS.source.length) {
-        for (const GDStoLCCitem of currentFlight.directions.LCCtoGDS.source) {
+  getBFMviaTransferPoint: async function (BFMresource, currentFlight, direction) {
+    console.log(currentFlight.directions[direction].source.length);
+    
+      if (currentFlight.directions[direction].source.length) {
+        for (const GDStoLCCitem of currentFlight.directions[direction].source) {
           await BFMresource.getBFM({
             DEPLocation: GDStoLCCitem['1'].OCT,
             ARRLocation: GDStoLCCitem['1'].DCT,
             DEPdateTimeLeg1: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1)
           }).then(chunk1 => {
-            currentFlight.directions.LCCtoGDS.chunk1list.push(chunk1.statusCode)
+            if(chunk1.statusCode === 200) {
+              currentFlight.directions[direction].chunk1list = 
+              currentFlight.directions[direction].chunk1list.concat(chunk1.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)
+            }
   
             return BFMresource.getBFM({
               DEPLocation: GDStoLCCitem['2'].OCT,
@@ -124,15 +127,18 @@ const BFM = {
             })
           })
           .then(chunk2 => {
-            currentFlight.directions.LCCtoGDS.chunk2list.push(chunk2.statusCode)//should PUSH not add
-            // console.log('currentFlight===============: ', currentFlight);
-            console.log('currentFlight...................: ', currentFlight)
-            console.log('chunk1list......................: ', currentFlight.directions.LCCtoGDS.chunk1list)
-            // resolve()
+            if(chunk2.statusCode === 200) {
+              currentFlight.directions[direction].chunk2list = 
+              currentFlight.directions[direction].chunk2list.concat(chunk2.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)
+            }
+            console.log('currentFlight...................: ', currentFlight.flightInitQuery.DEPLocation + '->' +
+            currentFlight.flightInitQuery.ARRLocation + ' ' + direction)
+            console.log('chunk 1 list......................: ', currentFlight.directions[direction].chunk1list.length)
+            console.log('chunk 2 list......................: ', currentFlight.directions[direction].chunk2list.length)
           })
         }
       }
-      //handle currentFlight.directions.LCCtoGDS
+      //handle currentFlight.directions[direction]
     
 
 
