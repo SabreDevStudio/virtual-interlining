@@ -13,6 +13,7 @@
     "async": "^2.6.1",
     "csvtojson": "^2.0.7",
     "easyconvert": "0.0.2",
+    "fast-csv": "^2.4.1",
     "js2xmlparser": "^3.0.0",
     "jsdom": "^11.11.0",
     "request": "^2.87.0"

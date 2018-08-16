@@ -107,7 +107,6 @@ const BFM = {
 
   getBFMviaTransferPoint: async function (BFMresource, currentFlight) {
       //handle currentFlight.directions.GDStoLCC
-      console.log('currentFlight: ', currentFlight);
       
       if (currentFlight.directions.LCCtoGDS.source.length) {
         for (const GDStoLCCitem of currentFlight.directions.LCCtoGDS.source) {
@@ -116,7 +115,7 @@ const BFM = {
             ARRLocation: GDStoLCCitem['1'].DCT,
             DEPdateTimeLeg1: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1)
           }).then(chunk1 => {
-            currentFlight.directions.LCCtoGDS.chunk1 = chunk1
+            currentFlight.directions.LCCtoGDS.chunk1list.push(chunk1.statusCode)
   
             return BFMresource.getBFM({
               DEPLocation: GDStoLCCitem['2'].OCT,
@@ -125,9 +124,10 @@ const BFM = {
             })
           })
           .then(chunk2 => {
-            currentFlight.directions.LCCtoGDS.chunk2 = chunk2
-            console.log('currentFlight===============: ', currentFlight);
-            
+            currentFlight.directions.LCCtoGDS.chunk2list.push(chunk2.statusCode)//should PUSH not add
+            // console.log('currentFlight===============: ', currentFlight);
+            console.log('currentFlight...................: ', currentFlight)
+            console.log('chunk1list......................: ', currentFlight.directions.LCCtoGDS.chunk1list)
             // resolve()
           })
         }

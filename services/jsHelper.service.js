@@ -1,4 +1,6 @@
 'use strict'
+var csv = require('fast-csv')
+const fs = require('fs')
 
 const jsHelper = {
   toOneLineString: structure => {
@@ -76,15 +78,23 @@ const jsHelper = {
     return fullList
   },
 
-  handleBFMresponse: BFMresponse => {
-    console.log('BFM status: ', BFMresponse.statusCode)
-
+  handleBFMresponse: (currentFlight, BFMresponse) => {
+    console.log('currentFlight: ', currentFlight);
+    
     if (BFMresponse && BFMresponse.statusCode === 200) {
-      // console.log('------------------body: ', BFMresponse.body)
+      currentFlight.GDS = Math.min(...BFMresponse.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary
+        .map(el => el.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount))
+        // csvStream.write({BFM_status: minItinPrice, b: "b0"});
+    } else {
+      currentFlight.GDS = 'noData'
     }
   },
 
   processArray: async function (flightList, BFMresource, DSSresource, DSS, BFM) {
+    const csvStream = csv.createWriteStream({headers: true})
+    const writableStream = fs.createWriteStream(`./logs/${new Date().getTime()}_log.csv`)
+    csvStream.pipe(writableStream);
+
     for (const flightInitQuery of flightList) {
       let currentFlight = jsHelper.flightSchema()
       currentFlight.flightInitQuery = flightInitQuery
@@ -92,7 +102,7 @@ const jsHelper = {
 
       await BFMresource.getBFM(BFMdetails)
       .then(BFMresponse => {
-        jsHelper.handleBFMresponse(BFMresponse)
+        jsHelper.handleBFMresponse(currentFlight, BFMresponse)
         currentFlight.GDS = BFMresponse.statusCode
         return DSSresource.getTransferAirport(BFMdetails.DEPLocation, BFMdetails.ARRLocation, BFMdetails.DEPdateTimeLeg1)
       })
@@ -116,6 +126,7 @@ const jsHelper = {
       // })
       
     }
+    csvStream.end();
     console.log('done!');
   },
 
@@ -136,7 +147,10 @@ const jsHelper = {
   }),
 
   getSortedDSSbyDirection: DSSlist => {
-    let sortedDSSlist = {GDStoLCC:{source:[]}, LCCtoGDS:{source:[]}}
+    let sortedDSSlist = {
+      GDStoLCC:{source:[], chunk1list:[], chunk2list:[]},
+      LCCtoGDS:{source:[], chunk1list:[], chunk2list:[]}
+    }
     DSSlist.forEach(el => {
       if (el['1'].TCR === 'true' && el['2'].LCC === 'true') {
         sortedDSSlist.GDStoLCC.source.push(el)
