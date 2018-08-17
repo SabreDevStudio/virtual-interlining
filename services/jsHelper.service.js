@@ -102,8 +102,9 @@ const jsHelper = {
 
       await BFMresource.getBFM(BFMdetails)
       .then(BFMresponse => {
+        console.log('BFMresponse: ', BFMresponse);
+        
         jsHelper.handleBFMresponse(currentFlight, BFMresponse)
-        currentFlight.GDS = BFMresponse.statusCode
         return DSSresource.getTransferAirport(BFMdetails.DEPLocation, BFMdetails.ARRLocation, BFMdetails.DEPdateTimeLeg1)
       })
       .then(DSSdataLeg => {
