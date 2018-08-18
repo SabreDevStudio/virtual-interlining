@@ -37,7 +37,6 @@ const jsHelper = {
 
   logIt: currentFlight => {
     jsHelper.storageContainer.push(currentFlight)
-    console.log('currentFlight: ', currentFlight);
     // wstream.write(storageContainer)
   },
 
@@ -102,36 +101,74 @@ const jsHelper = {
 
       await BFMresource.getBFM(BFMdetails)
       .then(BFMresponse => {
-        console.log('BFMresponse: ', BFMresponse);
-        
         jsHelper.handleBFMresponse(currentFlight, BFMresponse)
         return DSSresource.getTransferAirport(BFMdetails.DEPLocation, BFMdetails.ARRLocation, BFMdetails.DEPdateTimeLeg1)
       })
-      .then(DSSdataLeg => {
-        currentFlight.directions = jsHelper.getSortedDSSbyDirection(DSS.getMmlList(DSS.getMmpList(DSSdataLeg)))
+      .then(DSSdata => {
+        currentFlight.directions = jsHelper.getSortedDSSbyDirection(DSS.getMmlList(DSS.getMmpList(DSSdata)))
         return BFM.getBFMviaTransferPoint(BFMresource, currentFlight, 'LCCtoGDS')
       })
-      .then(result => {
-        console.log('**************************************************************************');
-        
-        return BFM.getBFMviaTransferPoint(BFMresource, currentFlight, 'GDStoLCC')
-      })
-      .catch(err => {
-        throw new Error(err)
-      })
-
-      // .then(DSSdataLeg2 => {
-      //   jsHelper.getSortedDSSbyDirection(DSS.getMmlList(DSS.getMmpList(DSSdataLeg2)), currentFlight, 'leg2')
-      //   jsHelper.findRoundTripItins(currentFlight, 'GDStoLCC')
-      //   // jsHelper.findRoundTripItins(currentFlight, 'LCCtoGDS')
-      //   return BFM.getBFMroundTripViaCity(BFMresource, currentFlight, 'GDStoLCC', flightInitQuery)
-      //   // if (currentFlight.LCCtoGDS.roundTripList.length) {console.log('LCCtoGDS: ', currentFlight.LCCtoGDS.roundTripList)}
-      // })
-      
+      // .then(() => BFM.getBFMviaTransferPoint(BFMresource, currentFlight, 'GDStoLCC'))
+      .then(() => jsHelper.findCheapestConnection(currentFlight, 'LCCtoGDS'))
+      // .then(() => jsHelper.findCheapestConnection(currentFlight, 'GDStoLCC'))
+      .catch(err => { throw new Error(err) })
     }
     csvStream.end();
     console.log('done!');
   },
+
+  findCheapestConnection: (currentFlight, direction) => {
+    console.log('direction----->: ', direction);
+    
+    return new Promise(resolve => {
+      //1 sort by price
+      jsHelper.sortItineraryListByPrice(currentFlight, direction, 'chunk1list')
+      jsHelper.sortItineraryListByPrice(currentFlight, direction, 'chunk2list')
+      //2 find cheapest connection
+      jsHelper.findConnection(currentFlight, direction)
+      resolve()
+    })
+  },
+
+  findConnection: (currentFlight, direction) => {
+    if (currentFlight.directions[direction].chunk1list.length &&
+        currentFlight.directions[direction].chunk2list.length) {
+
+      currentFlight.directions[direction].chunk1list.forEach(itinA => {
+        currentFlight.directions[direction].chunk2list.forEach(itinB => {
+          let itinAFlightSegment = itinA.AirItinerary.OriginDestinationOptions.OriginDestinationOption[0].FlightSegment
+          let itinBFlightSegment = itinB.AirItinerary.OriginDestinationOptions.OriginDestinationOption[0].FlightSegment
+          if(jsHelper.isDatesHaveTwoHoursForTransfer(itinAFlightSegment[itinAFlightSegment.length - 1].ArrivalDateTime,
+            itinBFlightSegment[0].DepartureDateTime
+          )) {
+            console.log('FOUND: ',itinAFlightSegment[itinAFlightSegment.length - 1].ArrivalDateTime + ' ' + itinBFlightSegment[0].DepartureDateTime);
+          }
+          process.stdout.write('.')
+        })
+      })
+    } else {
+      console.log('not anought data to find connection')
+    }
+  },
+
+  getMiliseconds: hour => 1000 * 60 * 60 * hour,
+  isDatesHaveTwoHoursForTransfer: (date1, date2) => 
+    new Date(date2).getTime() - new Date(date1).getTime() > jsHelper.getMiliseconds(2) &&
+    new Date(date2).getTime() - new Date(date1).getTime() < jsHelper.getMiliseconds(3),
+
+  sortItineraryListByPrice: (currentFlight, direction, chunk) => {
+    if (currentFlight.directions[direction][chunk].length) {
+      currentFlight.directions[direction][chunk].sort((a, b) =>
+      a.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount -
+      b.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount)
+    }
+  },
+
+  // console.log('currentFlight...................: ', currentFlight.flightInitQuery.DEPLocation + '->' +
+    //     currentFlight.flightInitQuery.ARRLocation + ' ' + direction)
+    //     console.log('chunk 1 list......................: ', currentFlight.directions[direction].chunk1list.length)
+    //     console.log('chunk 2 list......................: ', currentFlight.directions[direction].chunk2list.length)
+    // console.log('NEXT FLIGHT**************************************************************************');
 
   getBFMdetails: flight => {
     return {

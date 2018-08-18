@@ -2,8 +2,7 @@
 
 // Colors reference
 // You can use the following as so:
-// console.log(colorCode, data);
-// console.log(`${colorCode}some colorful text string${resetCode} rest of string in normal color`);
+// `${colorCode}some colorful text string${resetCode} rest of string in normal color`
 // 
 // ... and so on.
 module.exports = {

@@ -81,9 +81,6 @@ const DSSResource = {
         url: 'http://utt.cert.sabre.com/utt/dss/sendrequest',
         body: getOneLinedBody(origin, destination, date)
       }, (error, response) => {
-        console.log('DSSResource error: ', error);
-        console.log('DSSResource response: ', response);
-        
         if (error || !response) {
           resolve()
         } else {

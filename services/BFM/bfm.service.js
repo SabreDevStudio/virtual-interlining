@@ -106,35 +106,36 @@ const BFM = {
   },
 
   getBFMviaTransferPoint: async function (BFMresource, currentFlight, direction) {
-    console.log(currentFlight.directions[direction].source.length);
+    console.log('amount of leg directions: ', currentFlight.directions[direction].source.length);
     
       if (currentFlight.directions[direction].source.length) {
-        for (const GDStoLCCitem of currentFlight.directions[direction].source) {
+        for (const directionItem of currentFlight.directions[direction].source) {
           await BFMresource.getBFM({
-            DEPLocation: GDStoLCCitem['1'].OCT,
-            ARRLocation: GDStoLCCitem['1'].DCT,
+            DEPLocation: directionItem['1'].OCT,
+            ARRLocation: directionItem['1'].DCT,
             DEPdateTimeLeg1: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1)
           }).then(chunk1 => {
-            if(chunk1.statusCode === 200) {
+            if(chunk1 && chunk1.statusCode === 200) {
               currentFlight.directions[direction].chunk1list = 
               currentFlight.directions[direction].chunk1list.concat(chunk1.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)
             }
-  
+
             return BFMresource.getBFM({
-              DEPLocation: GDStoLCCitem['2'].OCT,
-              ARRLocation: GDStoLCCitem['2'].DCT,
+              DEPLocation: directionItem['2'].OCT,
+              ARRLocation: directionItem['2'].DCT,
               DEPdateTimeLeg1: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1)
             })
           })
           .then(chunk2 => {
-            if(chunk2.statusCode === 200) {
+            if(chunk2 && chunk2.statusCode === 200) {
               currentFlight.directions[direction].chunk2list = 
               currentFlight.directions[direction].chunk2list.concat(chunk2.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)
             }
-            console.log('currentFlight...................: ', currentFlight.flightInitQuery.DEPLocation + '->' +
-            currentFlight.flightInitQuery.ARRLocation + ' ' + direction)
-            console.log('chunk 1 list......................: ', currentFlight.directions[direction].chunk1list.length)
-            console.log('chunk 2 list......................: ', currentFlight.directions[direction].chunk2list.length)
+            //TODO: call anly unique directions
+            console.log('directionItem 1 OCT:', directionItem['1'].OCT);
+            console.log('directionItem 1 DCT:', directionItem['1'].DCT);
+            console.log('directionItem 2 OCT:', directionItem['2'].OCT);
+            console.log('directionItem 2 DCT:', directionItem['2'].DCT);
           })
         }
       }

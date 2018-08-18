@@ -6,8 +6,6 @@ const jsHelper = require('../jsHelper.service')
 
 const DSS = {
   getMmpList: dom => {
-    console.log('dom: ', dom);
-    
     let MMPLIST = Array.prototype.slice.call(dom.window.document.querySelectorAll('table.fieldlist table.fieldlist table.fieldlist'))
     return MMPLIST.filter(el => el.outerHTML.includes('MML') ? el : null)
   },
@@ -34,16 +32,6 @@ const DSS = {
     })
   
     return MMLLIST
-  },
-  getTransferAirportList: cb => {
-    dssResource.getTransferAirport('LON', 'KRK', '2018-08-12', (err, data) => {
-      console.log('err: ', err);
-      console.log('data: ', data);
-      
-      if (err || !data) cb(err)
-      let mmpList = DSS.getMmpList(data)
-      cb(null, DSS.getMmlList(mmpList))
-    })
   }
 }
 
