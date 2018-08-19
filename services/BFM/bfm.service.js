@@ -84,27 +84,6 @@ const BFM = {
     }
   },
 
-  getBFMroundTripViaCity2: (BFMresource, currentFlight, direction, flightInitQuery) => {
-    return new Promise((resolve, reject) => {
-      if (currentFlight[direction].roundTripList.length) {
-        console.log('currentFlight[direction].roundTripList: ', currentFlight[direction].roundTripList)
-        BFMresource.getBFM({
-          DEPLocation: currentFlight[direction].roundTripList[0]['1'].ORG,
-          ARRLocation: currentFlight[direction].roundTripList[0]['1'].DCT,
-          DEPdateTimeLeg1: jsHelper.getFilteredDate(flightInitQuery.DEPdateTimeLeg1),
-          DEPdateTimeLeg2: jsHelper.getFilteredDate(flightInitQuery.DEPdateTimeLeg2)
-        }).then(chunk1 => {
-          console.log('chunk1====================================');
-          console.log(chunk1);
-          resolve(chunk1)
-          console.log('chunk1====================================');
-        })
-      } else {
-        resolve()
-      }
-    })
-  },
-
   getFiltereDeirectionsByUniqueTransferPoint: (currentFlight, direction) => {
     let uniqueValues = []
     return currentFlight.directions[direction].source.filter(el => {
@@ -121,7 +100,7 @@ const BFM = {
     if (currentFlight.directions[direction].source.length) {
       currentFlight.directions[direction].source = BFM.getFiltereDeirectionsByUniqueTransferPoint(currentFlight, direction)
 
-      let TransferPointPromises = currentFlight.directions[direction].source.map((directionItem) => {
+      let TransferPointPromises = currentFlight.directions[direction].source.map(directionItem => {
         return new Promise(resolve => {
           BFMresource.getBFM({
             DEPLocation: directionItem['1'].OCT,
@@ -131,6 +110,7 @@ const BFM = {
             if(chunk1 && chunk1.statusCode === 200) {
               currentFlight.directions[direction].chunk1list = 
               currentFlight.directions[direction].chunk1list.concat(chunk1.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)
+              console.log(`success BFM call for ${direction}: ${directionItem['1'].OCT} => ${directionItem['1'].DCT} => ${directionItem['2'].DCT}`);
             }
             return BFMresource.getBFM({
               DEPLocation: directionItem['2'].OCT,
@@ -142,11 +122,8 @@ const BFM = {
             if(chunk2 && chunk2.statusCode === 200) {
               currentFlight.directions[direction].chunk2list = 
               currentFlight.directions[direction].chunk2list.concat(chunk2.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)
+              console.log(`success BFM call for ${direction}: ${directionItem['1'].OCT} => ${directionItem['1'].DCT} => ${directionItem['2'].DCT}`);
             }
-            console.log('directionItem 1 OCT:', directionItem['1'].OCT);
-            console.log('directionItem 1 DCT:', directionItem['1'].DCT);
-            console.log('directionItem 2 OCT:', directionItem['2'].OCT);
-            console.log('directionItem 2 DCT:', directionItem['2'].DCT);
             resolve()
           })
         })

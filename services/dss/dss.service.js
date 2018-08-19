@@ -1,7 +1,6 @@
 'use strict'
 
 const easyconvert = require('easyconvert')
-const dssResource = require('./dss.resource.service')
 const jsHelper = require('../jsHelper.service')
 
 const DSS = {
