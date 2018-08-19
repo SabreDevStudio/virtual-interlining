@@ -105,12 +105,25 @@ const BFM = {
     })
   },
 
+  getFiltereDeirectionsByUniqueTransferPoint: (currentFlight, direction) => {
+    let uniqueValues = []
+    return currentFlight.directions[direction].source.filter(el => {
+      if (!uniqueValues.length || uniqueValues.indexOf(el['1'].DCT) === -1) {
+        uniqueValues.push(el['1'].DCT)
+        return true
+      } else {
+        return false
+      }
+    })
+  },
+
   getBFMviaTransferPoint: async function (BFMresource, currentFlight, direction) {
-    console.log('amount of leg directions: ', currentFlight.directions[direction].source.length);
-    
-      if (currentFlight.directions[direction].source.length) {
-        for (const directionItem of currentFlight.directions[direction].source) {
-          await BFMresource.getBFM({
+    if (currentFlight.directions[direction].source.length) {
+      currentFlight.directions[direction].source = BFM.getFiltereDeirectionsByUniqueTransferPoint(currentFlight, direction)
+
+      let TransferPointPromises = currentFlight.directions[direction].source.map((directionItem) => {
+        return new Promise(resolve => {
+          BFMresource.getBFM({
             DEPLocation: directionItem['1'].OCT,
             ARRLocation: directionItem['1'].DCT,
             DEPdateTimeLeg1: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1)
@@ -119,7 +132,6 @@ const BFM = {
               currentFlight.directions[direction].chunk1list = 
               currentFlight.directions[direction].chunk1list.concat(chunk1.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)
             }
-
             return BFMresource.getBFM({
               DEPLocation: directionItem['2'].OCT,
               ARRLocation: directionItem['2'].DCT,
@@ -131,52 +143,17 @@ const BFM = {
               currentFlight.directions[direction].chunk2list = 
               currentFlight.directions[direction].chunk2list.concat(chunk2.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)
             }
-            //TODO: call anly unique directions
             console.log('directionItem 1 OCT:', directionItem['1'].OCT);
             console.log('directionItem 1 DCT:', directionItem['1'].DCT);
             console.log('directionItem 2 OCT:', directionItem['2'].OCT);
             console.log('directionItem 2 DCT:', directionItem['2'].DCT);
+            resolve()
           })
-        }
-      }
-      //handle currentFlight.directions[direction]
-    
+        })
+      })
 
-
-    // let promises = currentFlight.direction.roundTripList.map(roundTrip => {
-      
-      // return new Promise((resolve, reject) => {
-      //     BFMresource.getBFM({
-      //       DEPLocation: roundTrip['1'].OCT,
-      //       ARRLocation: roundTrip['1'].DCT,
-      //       DEPdateTimeLeg1: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1),
-      //       DEPdateTimeLeg2: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg2)
-      //     }).then(chunk1 => {
-            
-      //       if (chunk1.statusCode === 200) {
-      //         console.log('chunk1.statusCode: ', chunk1.statusCode);
-      //         currentFlight[direction].snowMan.chunk1.push(chunk1.body)
-      //       }
-  
-      //       return BFMresource.getBFM({
-      //         DEPLocation: roundTrip['2'].DCT,
-      //         ARRLocation: roundTrip['2'].OCT,
-      //         DEPdateTimeLeg1: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1),
-      //         DEPdateTimeLeg2: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg2)
-      //       })
-      //     })
-      //     .then(chunk2 => {
-      //       if (chunk2.statusCode === 200) {
-      //         console.log('chunk2.statusCode: ', chunk2.statusCode);
-      //           currentFlight[direction].snowMan.chunk2.push(chunk2.body)
-      //         }
-      //         console.log('snowMan: ', currentFlight[direction].snowMan);
-      //         resolve()
-      //       })
-      // })
-    // })
-
-    // await Promise.all(promises)  
+      await Promise.all(TransferPointPromises)
+    }
   }
 }
 
