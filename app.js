@@ -10,7 +10,8 @@ const processVirtualInterlinig = require('./services/virtualInterlining.service'
 csvToJsonConverter().then(data => {
   let departureAndArrivalList = jsHelper.parseDepartureAndArrivalList(data)
   let flightDates = getOneWayFlightDateList()
-  let allFlights = jsHelper.getFullFlightsList(departureAndArrivalList, flightDates).slice(0, 500)
+  let allFlights = jsHelper.getFullFlightsList(departureAndArrivalList, flightDates)
+  .slice(0, 50)
   console.log('allFlights length: ', allFlights.length)
 
   processVirtualInterlinig(allFlights, BFMresource, DSSresource, DSS, BFM)

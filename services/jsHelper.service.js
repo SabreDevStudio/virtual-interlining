@@ -44,7 +44,7 @@ const jsHelper = {
   getFilteredDate: d => {
     //here is schema: "2018-08-13T00:00:00"
     let year = d.getFullYear()
-    let month = (d.getMonth() + '').length === 1 ? `0${d.getMonth() + 1}` : d.getMonth() + 1
+    let month = (d.getMonth() + '').length === 1 && d.getMonth() !== 9 ? `0${d.getMonth() + 1}` : d.getMonth() + 1
     let date = (d.getDate() + '').length === 1 ? `0${d.getDate()}` : d.getDate()
     return `${year}-${month}-${date}T00:00:00`
   },

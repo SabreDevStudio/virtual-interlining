@@ -18,8 +18,8 @@ const findCheapestConnection = (currentFlight, direction) => {
           let itinAFlightSegment = itinA.AirItinerary.OriginDestinationOptions.OriginDestinationOption[0].FlightSegment
           let itinBFlightSegment = itinB.AirItinerary.OriginDestinationOptions.OriginDestinationOption[0].FlightSegment
 
-          if(isDatesHaveEnoughTimeForTransfer(itinAFlightSegment[itinAFlightSegment.length - 1].ArrivalDateTime,
-            itinBFlightSegment[0].DepartureDateTime)) {
+          if(isDatesHaveEnoughTimeForTransfer(itinAFlightSegment[itinAFlightSegment.length - 1].ArrivalDateTime,itinBFlightSegment[0].DepartureDateTime) &&
+             itinA.transferPoint === itinB.transferPoint) {
               comparableItins.push({itinA: itinA, itinB: itinB})
           }
         })
@@ -33,9 +33,11 @@ const findCheapestConnection = (currentFlight, direction) => {
 
       let cheapestComparableItins = sortArrayBySummarizedPrice(comparableItinsList)[0]
       currentFlight.directions[direction].result = {
-        itinAprice: cheapestComparableItins.itinA.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount,
-        itinBprice: cheapestComparableItins.itinB.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount
+        itinA: cheapestComparableItins.itinA,
+        itinB: cheapestComparableItins.itinB,
+        summarizedPrice: cheapestComparableItins.summarizedPrice
       }
+      
       console.log(`${colors.yellow}${'\n'}Cheapest connection has been found for ${direction}.${colors.reset}`);
       
       resolve()

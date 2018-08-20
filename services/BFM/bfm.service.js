@@ -99,7 +99,6 @@ const BFM = {
   getBFMviaTransferPoint: async function (BFMresource, currentFlight, direction) {
     if (currentFlight.directions[direction].source.length) {
       currentFlight.directions[direction].source = BFM.getFiltereDeirectionsByUniqueTransferPoint(currentFlight, direction)
-
       let TransferPointPromises = currentFlight.directions[direction].source.map(directionItem => {
         return new Promise(resolve => {
           BFMresource.getBFM({
@@ -108,9 +107,13 @@ const BFM = {
             DEPdateTimeLeg1: currentFlight.flightInitQuery.DEPdateTimeLeg1
           }).then(chunk1 => {
             if(chunk1 && chunk1.statusCode === 200) {
-              currentFlight.directions[direction].chunk1list = 
-              currentFlight.directions[direction].chunk1list.concat(chunk1.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)
-              console.log(`success BFM call for ${direction}: ${directionItem['1'].OCT} => ${directionItem['1'].DCT}`);
+              let itinList = chunk1.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary.map(el => {
+                el.transferPoint = directionItem['1'].DCT
+                return el
+              })
+
+              currentFlight.directions[direction].chunk1list = currentFlight.directions[direction].chunk1list.concat(itinList)
+              console.log(`success BFM call for 1 ${direction}: ${directionItem['1'].OCT} => ${directionItem['1'].DCT}`);
             }
             return BFMresource.getBFM({
               DEPLocation: directionItem['2'].OCT,
@@ -120,9 +123,13 @@ const BFM = {
           })
           .then(chunk2 => {
             if(chunk2 && chunk2.statusCode === 200) {
-              currentFlight.directions[direction].chunk2list = 
-              currentFlight.directions[direction].chunk2list.concat(chunk2.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)
-              console.log(`success BFM call for ${direction}: ${directionItem['2'].OCT} => ${directionItem['2'].DCT}`);
+              let itinList = chunk2.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary.map(el => {
+                el.transferPoint = directionItem['2'].OCT
+                return el
+              })
+
+              currentFlight.directions[direction].chunk2list = currentFlight.directions[direction].chunk2list.concat(itinList)
+              console.log(`success BFM call for 2 ${direction}: ${directionItem['2'].OCT} => ${directionItem['2'].DCT}`);
             }
             resolve()
           })
