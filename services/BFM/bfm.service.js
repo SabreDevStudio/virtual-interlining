@@ -105,24 +105,24 @@ const BFM = {
           BFMresource.getBFM({
             DEPLocation: directionItem['1'].OCT,
             ARRLocation: directionItem['1'].DCT,
-            DEPdateTimeLeg1: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1)
+            DEPdateTimeLeg1: currentFlight.flightInitQuery.DEPdateTimeLeg1
           }).then(chunk1 => {
             if(chunk1 && chunk1.statusCode === 200) {
               currentFlight.directions[direction].chunk1list = 
               currentFlight.directions[direction].chunk1list.concat(chunk1.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)
-              console.log(`success BFM call for ${direction}: ${directionItem['1'].OCT} => ${directionItem['1'].DCT} => ${directionItem['2'].DCT}`);
+              console.log(`success BFM call for ${direction}: ${directionItem['1'].OCT} => ${directionItem['1'].DCT}`);
             }
             return BFMresource.getBFM({
               DEPLocation: directionItem['2'].OCT,
               ARRLocation: directionItem['2'].DCT,
-              DEPdateTimeLeg1: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1)
+              DEPdateTimeLeg1: currentFlight.flightInitQuery.DEPdateTimeLeg1
             })
           })
           .then(chunk2 => {
             if(chunk2 && chunk2.statusCode === 200) {
               currentFlight.directions[direction].chunk2list = 
               currentFlight.directions[direction].chunk2list.concat(chunk2.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)
-              console.log(`success BFM call for ${direction}: ${directionItem['1'].OCT} => ${directionItem['1'].DCT} => ${directionItem['2'].DCT}`);
+              console.log(`success BFM call for ${direction}: ${directionItem['2'].OCT} => ${directionItem['2'].DCT}`);
             }
             resolve()
           })
@@ -130,6 +130,15 @@ const BFM = {
       })
 
       await Promise.all(TransferPointPromises)
+    }
+  },
+
+  handleBFMresponse: (currentFlight, BFMresponse) => {
+    if (BFMresponse && BFMresponse.statusCode === 200) {
+      currentFlight.GDS = Math.min(...BFMresponse.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary
+        .map(el => el.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount))
+    } else {
+      currentFlight.GDS = 'no data'
     }
   }
 }

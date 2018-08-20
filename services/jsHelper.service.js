@@ -1,6 +1,4 @@
 'use strict'
-var csv = require('fast-csv')
-const fs = require('fs')
 
 const jsHelper = {
   toOneLineString: structure => {
@@ -46,12 +44,9 @@ const jsHelper = {
   getFilteredDate: d => {
     //here is schema: "2018-08-13T00:00:00"
     let year = d.getFullYear()
-    let month = (d.getMonth() + '').length === 1 ? `0${d.getMonth()}` : d.getMonth()
+    let month = (d.getMonth() + '').length === 1 ? `0${d.getMonth() + 1}` : d.getMonth() + 1
     let date = (d.getDate() + '').length === 1 ? `0${d.getDate()}` : d.getDate()
-    let hours = (d.getHours() + '').length === 1 ? `0${d.getHours()}` : d.getHours()
-    let minutes = (d.getMinutes() + '').length === 1 ? `0${d.getMinutes()}` : d.getMinutes()
-    let seconds = (d.getSeconds() + '').length === 1 ? `0${d.getSeconds()}` : d.getSeconds()
-    return `${year}-${month}-${date}T${hours}:${minutes}:${seconds}`
+    return `${year}-${month}-${date}T00:00:00`
   },
 
   getFullFlightsList: (flightPoints, flightDates) => {
@@ -62,147 +57,13 @@ const jsHelper = {
         fullList.push({
           DEPLocation: points.DEP,
           ARRLocation: points.ARR,
-          DEPdateTimeLeg1: dates.DEP,
-          DEPdateTimeLeg2: dates.ARR ? dates.ARR : null
+          DEPdateTimeLeg1: dates.DEP ? jsHelper.getFilteredDate(dates.DEP) : null,
+          DEPdateTimeLeg2: dates.ARR ? jsHelper.getFilteredDate(dates.ARR) : null
         })
       })
     });
   
     return fullList
-  },
-
-  handleBFMresponse: (currentFlight, BFMresponse) => {
-    if (BFMresponse && BFMresponse.statusCode === 200) {
-      currentFlight.GDS = Math.min(...BFMresponse.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary
-        .map(el => el.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount))
-    } else {
-      currentFlight.GDS = 'no data'
-    }
-  },
-
-  processArray: async function (flightList, BFMresource, DSSresource, DSS, BFM) {
-    const csvStream = csv.createWriteStream({headers: true})
-    const writableStream = fs.createWriteStream(`./logs/${new Date().getTime()}_log.csv`)
-    csvStream.pipe(writableStream);
-
-    for (const flightInitQuery of flightList) {
-      let currentFlight = jsHelper.flightSchema()
-      currentFlight.flightInitQuery = flightInitQuery
-      let BFMdetails = jsHelper.getBFMdetails(flightInitQuery)
-
-      await BFMresource.getBFM(BFMdetails)
-      .then(BFMresponse => {
-        jsHelper.handleBFMresponse(currentFlight, BFMresponse)
-        return DSSresource.getTransferAirport(BFMdetails.DEPLocation, BFMdetails.ARRLocation, BFMdetails.DEPdateTimeLeg1)
-      })
-      .then(DSSdata => {
-        currentFlight.directions = jsHelper.getSortedDSSbyDirection(DSS.getMmlList(DSS.getMmpList(DSSdata)))
-        console.log('flightInitQuery: ', currentFlight.flightInitQuery);
-        
-        return BFM.getBFMviaTransferPoint(BFMresource, currentFlight, 'LCCtoGDS')
-      })
-      .then(() => BFM.getBFMviaTransferPoint(BFMresource, currentFlight, 'GDStoLCC'))
-      .then(() => jsHelper.findCheapestConnection(currentFlight, 'LCCtoGDS'))
-      .then(() => jsHelper.findCheapestConnection(currentFlight, 'GDStoLCC'))
-      .then(() => jsHelper.logCurrentFlightData(csvStream, currentFlight))
-      .catch(err => { throw new Error(err) })
-      console.log('----------------------------------------NEXT FLIGHT----------------------------------------');
-    }
-    csvStream.end();
-    console.log('done!');
-  },
-
-  logCurrentFlightData: (csvStream, currentFlight) => {
-    let LCCtoGDSdirectionsResult = currentFlight.directions.LCCtoGDS.result
-    let GDStoLCCdirectionsResult = currentFlight.directions.GDStoLCC.result
-    let LCCtoGDS = LCCtoGDSdirectionsResult && LCCtoGDSdirectionsResult.itinAprice && LCCtoGDSdirectionsResult.itinBprice ?
-    LCCtoGDSdirectionsResult.itinAprice + LCCtoGDSdirectionsResult.itinBprice : 'no data'
-
-    let GDStoLCC = GDStoLCCdirectionsResult && GDStoLCCdirectionsResult.itinAprice && GDStoLCCdirectionsResult.itinBprice ?
-    GDStoLCCdirectionsResult.itinAprice + GDStoLCCdirectionsResult.itinBprice : 'no data'
-
-    csvStream.write({
-      DEP: currentFlight.flightInitQuery.DEPLocation,
-      ARR: currentFlight.flightInitQuery.ARRLocation,
-      DEPtime: jsHelper.getFilteredDate(currentFlight.flightInitQuery.DEPdateTimeLeg1),
-      BFM_status: currentFlight.GDS,
-      LCCtoGDS: LCCtoGDS,
-      GDStoLCC: GDStoLCC
-    });
-  },
-
-  findCheapestConnection: (currentFlight, direction) => {
-    return new Promise(resolve => {
-      if (currentFlight.directions[direction].chunk1list.length && currentFlight.directions[direction].chunk2list.length) {
-        let comparableItins = []
-  
-        currentFlight.directions[direction].chunk1list.forEach(itinA => {
-          currentFlight.directions[direction].chunk2list.forEach(itinB => {
-            let itinAFlightSegment = itinA.AirItinerary.OriginDestinationOptions.OriginDestinationOption[0].FlightSegment
-            let itinBFlightSegment = itinB.AirItinerary.OriginDestinationOptions.OriginDestinationOption[0].FlightSegment
-            process.stdout.write('.')
-  
-            if(jsHelper.isDatesHaveEnoughTimeForTransfer(itinAFlightSegment[itinAFlightSegment.length - 1].ArrivalDateTime,
-              itinBFlightSegment[0].DepartureDateTime)) {
-                comparableItins.push({itinA: itinA, itinB: itinB})
-            }
-          })
-        })
-  
-        let comparableItinsList = comparableItins.map(el => {
-          el.summarizedPrice = el.itinA.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount + 
-                              el.itinB.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount
-          return el
-        })
-
-        let cheapestComparableItins = jsHelper.sortArrayBySummarizedPrice(comparableItinsList)[0]
-        currentFlight.directions[direction].result = {
-          itinAprice: cheapestComparableItins.itinA.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount,
-          itinBprice: cheapestComparableItins.itinB.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount
-        }
-        resolve()
-      } else {
-        console.log(`No cheapest connection for ${direction}. At least one leg not found`)
-        resolve()
-      }
-    })
-  },
-
-  getMiliseconds: hour => 1000 * 60 * 60 * hour,
-  isDatesHaveEnoughTimeForTransfer: (date1, date2) => 
-    new Date(date2).getTime() - new Date(date1).getTime() > jsHelper.getMiliseconds(2) &&
-    new Date(date2).getTime() - new Date(date1).getTime() < jsHelper.getMiliseconds(6),
-
-  sortArrayBySummarizedPrice: list => list.sort((a, b) => a.summarizedPrice - b.summarizedPrice),
-
-  getBFMdetails: flight => {
-    return {
-      DEPLocation: flight.DEPLocation,
-      ARRLocation: flight.ARRLocation,
-      DEPdateTimeLeg1: flight.DEPdateTimeLeg1 ? jsHelper.getFilteredDate(flight.DEPdateTimeLeg1) : null,
-      DEPdateTimeLeg2: flight.DEPdateTimeLeg2 ? jsHelper.getFilteredDate(flight.DEPdateTimeLeg2) : null
-    }
-  },
-
-  flightSchema: () => new Object({
-    GDS: {},
-    directions: {}
-  }),
-
-  getSortedDSSbyDirection: DSSlist => {
-    let sortedDSSlist = {
-      GDStoLCC:{source:[], chunk1list:[], chunk2list:[]},
-      LCCtoGDS:{source:[], chunk1list:[], chunk2list:[]}
-    }
-    DSSlist.forEach(el => {
-      if (el['1'].TCR === 'true' && el['2'].LCC === 'true') {
-        sortedDSSlist.GDStoLCC.source.push(el)
-      }
-      if (el['1'].LCC === 'true' && el['2'].TCR === 'true') {
-        sortedDSSlist.LCCtoGDS.source.push(el)
-      }
-    })
-    return sortedDSSlist
   },
 
   filterLegView: leg => `${leg['1'].OCT} - ${leg['1'].DCT} - ${leg['2'].OCT} - ${leg['2'].DCT}`,

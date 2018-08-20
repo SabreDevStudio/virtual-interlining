@@ -31,6 +31,21 @@ const DSS = {
     })
   
     return MMLLIST
+  },
+  getSortedDSSbyDirection: DSSlist => {
+    let sortedDSSlist = {
+      GDStoLCC:{source:[], chunk1list:[], chunk2list:[]},
+      LCCtoGDS:{source:[], chunk1list:[], chunk2list:[]}
+    }
+    DSSlist.forEach(el => {
+      if (el['1'].TCR === 'true' && el['2'].LCC === 'true') {
+        sortedDSSlist.GDStoLCC.source.push(el)
+      }
+      if (el['1'].LCC === 'true' && el['2'].TCR === 'true') {
+        sortedDSSlist.LCCtoGDS.source.push(el)
+      }
+    })
+    return sortedDSSlist
   }
 }
 
