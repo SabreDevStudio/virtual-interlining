@@ -2,9 +2,18 @@
 
 const csv = require('csvtojson')
 
-module.exports = () => new Promise((resolve, reject) => {
+let marketList = {
+  GB: './csv/GB.csv',
+  DK: './csv/DK.csv',
+  NO: './csv/NO.csv',
+  SE: './csv/SE.csv'
+}
+
+const getMarketDirections = market => new Promise((resolve, reject) => {
   csv({noheader: true, output: "line"})
     .on('error', err => reject(err))
-    .fromFile('./csv/GB.csv')
-    .then(jsonObj => resolve(jsonObj))
+    .fromFile(marketList[market])
+    .then(jsonObj => resolve({market: market, list: jsonObj}))
 })
+
+module.exports = getMarketDirections

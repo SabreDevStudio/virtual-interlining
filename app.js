@@ -7,14 +7,14 @@ const BFMresource = require('./services/BFM/bfm.resource.service')
 const BFM = require('./services/BFM/bfm.service')
 const processVirtualInterlinig = require('./services/virtualInterlining.service')
 
-csvToJsonConverter().then(data => {
-  let departureAndArrivalList = jsHelper.parseDepartureAndArrivalList(data)
+csvToJsonConverter('GB').then(data => {
+  let departureAndArrivalList = jsHelper.parseDepartureAndArrivalList(data.list)
   let flightDates = getOneWayFlightDateList()
   let allFlights = jsHelper.getFullFlightsList(departureAndArrivalList, flightDates)
   .slice(0, 50)
   console.log('allFlights length: ', allFlights.length)
 
-  processVirtualInterlinig(allFlights, BFMresource, DSSresource, DSS, BFM)
+  processVirtualInterlinig(allFlights, BFMresource, DSSresource, DSS, BFM, data.market)
 }, err => {
   throw new Error(err)
 })

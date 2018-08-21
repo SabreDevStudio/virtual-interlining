@@ -3,13 +3,13 @@ const fs = require('fs')
 const logCurrentFlightData = require('./log.service')
 const findCheapestConnection = require('./cheapestConnection.service')
 
-const processVirtualInterlinig = async function (flightList, BFMresource, DSSresource, DSS, BFM) {
+const processVirtualInterlinig = async function (flightList, BFMresource, DSSresource, DSS, BFM, market) {
   const csvStream = csv.createWriteStream({headers: true})
   const writableStream = fs.createWriteStream(`./logs/${new Date().getTime()}_log.csv`)
   csvStream.pipe(writableStream);
 
   for (const flightInitQuery of flightList) {
-    let currentFlight = {flightInitQuery: flightInitQuery}
+    let currentFlight = {flightInitQuery: flightInitQuery, market: market}
     console.log(`${currentFlight.flightInitQuery.DEPdateTimeLeg1} 
     ${currentFlight.flightInitQuery.DEPLocation} => ${currentFlight.flightInitQuery.ARRLocation}`)
 
