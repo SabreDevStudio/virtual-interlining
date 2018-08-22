@@ -1,7 +1,7 @@
 'use strict'
 
 const APLOS = {
-  AP: [1, 4, 6, 7, 10, 14, 20, 30, 60],//advance purchase
+  AP: [1, 4, 7, 14, 21, 45],//advance purchase
   LOS: [1, 3, 7, 14]//length of stay
 }
 

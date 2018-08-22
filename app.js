@@ -12,7 +12,6 @@ csvToJsonConverter('GB').then(data => {
   let flightDates = getOneWayFlightDateList()
   let allFlights = jsHelper.getFullFlightsList(departureAndArrivalList, flightDates)
   .slice(0, 50)
-  console.log('allFlights length: ', allFlights.length)
 
   processVirtualInterlinig(allFlights, BFMresource, DSSresource, DSS, BFM, data.market)
 }, err => {

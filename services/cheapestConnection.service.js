@@ -1,5 +1,5 @@
-const getMiliseconds = hour => 1000 * 60 * 60 * hour
 const colors = require('./colorCodes.service')
+const getMiliseconds = hour => 1000 * 60 * 60 * hour
 
 const isDatesHaveEnoughTimeForTransfer = (date1, date2) => 
       new Date(date2).getTime() - new Date(date1).getTime() > getMiliseconds(2) &&

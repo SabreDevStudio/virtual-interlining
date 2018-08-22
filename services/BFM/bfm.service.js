@@ -1,6 +1,7 @@
 'use strict'
 
-const jsHelper = require('../jsHelper.service')
+const getSortedItinListByPrice = list => list.sort((a, b) =>
+      a.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount - b.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount)
 
 const BFM = {
   getBFMbody: BFMdetails => {
@@ -96,56 +97,54 @@ const BFM = {
     })
   },
 
+  getTransferPointPromises: (BFMresource, currentFlight, direction, itemNumber, chunkListNumber, transferPoint) => {
+
+
+    return currentFlight.directions[direction].source.map(directionItem => {
+      return new Promise(resolve => {
+        BFMresource.getBFM({
+          DEPLocation: directionItem[itemNumber].OCT,
+          ARRLocation: directionItem[itemNumber].DCT,
+          DEPdateTimeLeg1: currentFlight.flightInitQuery.DEPdateTimeLeg1
+        }).then(data => {
+          if(data && data.statusCode === 200) {
+            let itinList = data.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary.map(el => {
+              el.transferPoint = directionItem[itemNumber][transferPoint]
+              el.via = {
+                OCT: directionItem[itemNumber].OCT,
+                DCT: directionItem[itemNumber].DCT,
+                ORG: directionItem[itemNumber].ORG,
+                DST: directionItem[itemNumber].DST
+              }
+
+              return el
+            })
+
+            currentFlight.directions[direction][chunkListNumber] = currentFlight.directions[direction][chunkListNumber].concat(itinList)
+            console.log(`success BFM call for ${itemNumber} ${direction}: ${directionItem[itemNumber].OCT} => ${directionItem[itemNumber].DCT}`);
+          }
+          resolve()
+        })
+      })
+    })
+  },
+
   getBFMviaTransferPoint: async function (BFMresource, currentFlight, direction) {
     if (currentFlight.directions[direction].source.length) {
       currentFlight.directions[direction].source = BFM.getFiltereDeirectionsByUniqueTransferPoint(currentFlight, direction)
-      let TransferPointPromises = currentFlight.directions[direction].source.map(directionItem => {
-        return new Promise(resolve => {
-          BFMresource.getBFM({
-            DEPLocation: directionItem['1'].OCT,
-            ARRLocation: directionItem['1'].DCT,
-            DEPdateTimeLeg1: currentFlight.flightInitQuery.DEPdateTimeLeg1
-          }).then(chunk1 => {
-            if(chunk1 && chunk1.statusCode === 200) {
-              let itinList = chunk1.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary.map(el => {
-                el.transferPoint = directionItem['1'].DCT
-                return el
-              })
 
-              currentFlight.directions[direction].chunk1list = currentFlight.directions[direction].chunk1list.concat(itinList)
-              console.log(`success BFM call for 1 ${direction}: ${directionItem['1'].OCT} => ${directionItem['1'].DCT}`);
-            }
-            return BFMresource.getBFM({
-              DEPLocation: directionItem['2'].OCT,
-              ARRLocation: directionItem['2'].DCT,
-              DEPdateTimeLeg1: currentFlight.flightInitQuery.DEPdateTimeLeg1
-            })
-          })
-          .then(chunk2 => {
-            if(chunk2 && chunk2.statusCode === 200) {
-              let itinList = chunk2.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary.map(el => {
-                el.transferPoint = directionItem['2'].OCT
-                return el
-              })
+      let TransferPointPromisesChunk1 = BFM.getTransferPointPromises(BFMresource, currentFlight, direction, '1', 'chunk1list', 'DCT')
+      let TransferPointPromisesChunk2 = BFM.getTransferPointPromises(BFMresource, currentFlight, direction, '2', 'chunk2list', 'OCT')
 
-              currentFlight.directions[direction].chunk2list = currentFlight.directions[direction].chunk2list.concat(itinList)
-              console.log(`success BFM call for 2 ${direction}: ${directionItem['2'].OCT} => ${directionItem['2'].DCT}`);
-            }
-            resolve()
-          })
-        })
-      })
-
-      await Promise.all(TransferPointPromises)
+      await Promise.all(TransferPointPromisesChunk1.concat(TransferPointPromisesChunk2))
     }
   },
 
   handleBFMresponse: (currentFlight, BFMresponse) => {
     if (BFMresponse && BFMresponse.statusCode === 200) {
-      currentFlight.GDS = Math.min(...BFMresponse.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary
-        .map(el => el.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount))
-    } else {
-      currentFlight.GDS = 'no data'
+      currentFlight.GDS = getSortedItinListByPrice(BFMresponse.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)[0]
+      // currentFlight.GDS = Math.min(...BFMresponse.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary
+      //   .map(el => el.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount))
     }
   }
 }

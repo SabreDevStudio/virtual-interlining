@@ -1,12 +1,13 @@
-const getItinsTotalPrice = (direction, currentFlight) => {
-  let result = currentFlight.directions[direction].result
-  return result ? result.summarizedPrice : false
-}
+const getTripCombination = (direction, currentFlight) => currentFlight.directions[direction].result
 
-const isCheaper = currentFlight => {
-  let GDSprice = currentFlight.GDS
-  let LCCtoGDS_price = getItinsTotalPrice('LCCtoGDS', currentFlight)
-  let GDStoLCC_price = getItinsTotalPrice('GDStoLCC', currentFlight)
+const getItinsTotalPrice = trip => trip ? trip.summarizedPrice : null
+
+const getGDSprice = currentFlight => currentFlight.GDS.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount
+
+const isCheaper = (currentFlight, GDStoLCCtrip, LCCtoGDStrip) => {
+  let GDSprice = getGDSprice(currentFlight)
+  let LCCtoGDS_price = getItinsTotalPrice(LCCtoGDStrip)
+  let GDStoLCC_price = getItinsTotalPrice(GDStoLCCtrip)
 
   if (!GDSprice) return false
   if (GDSprice && LCCtoGDS_price && !GDStoLCC_price) return LCCtoGDS_price < GDSprice
@@ -14,22 +15,42 @@ const isCheaper = currentFlight => {
   if (GDSprice && LCCtoGDS_price && GDStoLCC_price) return GDStoLCC_price < GDSprice && LCCtoGDS_price < GDSprice
 }
 
-const getViaPoint = (direction, currentFlight) => {
-  let result = currentFlight.directions[direction].result
-  return result ? result.itinA.transferPoint : 'no data'
+const getViaCity = trip => trip ? trip.itinA.via.DCT : null
+
+const getAmountOfStops = itin => {
+  return itin.AirItinerary.OriginDestinationOptions.OriginDestinationOption[0].FlightSegment.length - 1
 }
 
+const getViaAirport = trip => {
+  return trip ? trip.itinA.via.DST : null
+}
+//total numbers of stops (o for gds)[DONE]
+//trip duration in hours
+//depurture and arrival time of whole trip
+//eirline per each segment
+//errors in separate column
+
 module.exports = (csvStream, currentFlight) => {
+  let LCCtoGDStrip = getTripCombination('LCCtoGDS', currentFlight)
+  let GDStoLCCtrip = getTripCombination('GDStoLCC', currentFlight)
+
   csvStream.write({
-    market: currentFlight.market,
     DEP: currentFlight.flightInitQuery.DEPLocation,
     ARR: currentFlight.flightInitQuery.ARRLocation,
-    DEPtime: currentFlight.flightInitQuery.DEPdateTimeLeg1,
-    GDS: currentFlight.GDS,
-    LCCtoGDS_price: getItinsTotalPrice('LCCtoGDS', currentFlight) || 'no data',
-    LCCtoGDS_via: getViaPoint('LCCtoGDS', currentFlight),
-    GDStoLCC_price: getItinsTotalPrice('GDStoLCC', currentFlight) || 'no data',
-    GDStoLCC_via: getViaPoint('GDStoLCC', currentFlight),
-    isCheaper: isCheaper(currentFlight)//true when cheaper than GDS
+    DEP_date: currentFlight.flightInitQuery.DEPdateTimeLeg1,
+    GDS: getGDSprice(currentFlight) || null,
+    GDS_amount_of_stops: getAmountOfStops(currentFlight.GDS),
+
+    LCCtoGDS_price: getItinsTotalPrice(LCCtoGDStrip),
+    LCCtoGDS_via_city: getViaCity(LCCtoGDStrip),
+    LCCtoGDS_via_airport: getViaAirport(LCCtoGDStrip),
+    LCCtoGDS_number_of_stops: LCCtoGDStrip ? getAmountOfStops(LCCtoGDStrip.itinA) + getAmountOfStops(LCCtoGDStrip.itinB) : null,
+
+    GDStoLCC_price: getItinsTotalPrice(GDStoLCCtrip),
+    GDStoLCC_via_city: getViaCity(GDStoLCCtrip),
+    GDStoLCC_via_airport: getViaAirport(GDStoLCCtrip),
+    GDStoLCC_number_of_stops: GDStoLCCtrip ? getAmountOfStops(GDStoLCCtrip.itinA) + getAmountOfStops(GDStoLCCtrip.itinB) : null,
+
+    isCheaper: isCheaper(currentFlight, GDStoLCCtrip, LCCtoGDStrip)//true when cheaper than GDS
   });
 }

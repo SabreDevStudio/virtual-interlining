@@ -52,8 +52,8 @@ const jsHelper = {
   getFullFlightsList: (flightPoints, flightDates) => {
     let fullList = []
   
-    flightPoints.forEach(points => {
-      flightDates.forEach(dates => {
+    flightDates.forEach(dates => {
+      flightPoints.forEach(points => {
         fullList.push({
           DEPLocation: points.DEP,
           ARRLocation: points.ARR,
