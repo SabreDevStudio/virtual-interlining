@@ -12,19 +12,14 @@ const isCheaper = (currentFlight, GDStoLCCtrip, LCCtoGDStrip) => {
   if (!GDSprice) return false
   if (GDSprice && LCCtoGDS_price && !GDStoLCC_price) return LCCtoGDS_price < GDSprice
   if (GDSprice && !LCCtoGDS_price && GDStoLCC_price) return GDStoLCC_price < GDSprice
-  if (GDSprice && LCCtoGDS_price && GDStoLCC_price) return GDStoLCC_price < GDSprice && LCCtoGDS_price < GDSprice
+  if (GDSprice && LCCtoGDS_price && GDStoLCC_price) return (GDStoLCC_price < GDSprice) || (LCCtoGDS_price < GDSprice)
 }
 
 const getViaCity = trip => trip ? trip.itinA.via.DCT : null
 
-const getAmountOfStops = itin => {
-  return itin.AirItinerary.OriginDestinationOptions.OriginDestinationOption[0].FlightSegment.length - 1
-}
-
 const getViaAirport = trip => {
   return trip ? trip.itinA.via.DST : null
 }
-//total numbers of stops (o for gds)[DONE]
 //trip duration in hours
 //depurture and arrival time of whole trip
 //eirline per each segment
@@ -39,17 +34,17 @@ module.exports = (csvStream, currentFlight) => {
     ARR: currentFlight.flightInitQuery.ARRLocation,
     DEP_date: currentFlight.flightInitQuery.DEPdateTimeLeg1,
     GDS: getGDSprice(currentFlight) || null,
-    GDS_amount_of_stops: getAmountOfStops(currentFlight.GDS),
+    GDS_amount_of_stops: currentFlight.GDS.amountOfStops,
 
     LCCtoGDS_price: getItinsTotalPrice(LCCtoGDStrip),
     LCCtoGDS_via_city: getViaCity(LCCtoGDStrip),
     LCCtoGDS_via_airport: getViaAirport(LCCtoGDStrip),
-    LCCtoGDS_number_of_stops: LCCtoGDStrip ? getAmountOfStops(LCCtoGDStrip.itinA) + getAmountOfStops(LCCtoGDStrip.itinB) : null,
+    LCCtoGDS_number_of_stops: LCCtoGDStrip ? LCCtoGDStrip.itinA.amountOfStops + LCCtoGDStrip.itinB.amountOfStops : null,
 
     GDStoLCC_price: getItinsTotalPrice(GDStoLCCtrip),
     GDStoLCC_via_city: getViaCity(GDStoLCCtrip),
     GDStoLCC_via_airport: getViaAirport(GDStoLCCtrip),
-    GDStoLCC_number_of_stops: GDStoLCCtrip ? getAmountOfStops(GDStoLCCtrip.itinA) + getAmountOfStops(GDStoLCCtrip.itinB) : null,
+    GDStoLCC_number_of_stops: GDStoLCCtrip ? GDStoLCCtrip.itinA.amountOfStops + GDStoLCCtrip.itinB.amountOfStops : null,
 
     isCheaper: isCheaper(currentFlight, GDStoLCCtrip, LCCtoGDStrip)//true when cheaper than GDS
   });

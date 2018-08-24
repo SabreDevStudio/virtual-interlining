@@ -3,9 +3,9 @@ const fs = require('fs')
 const logCurrentFlightData = require('./log.service')
 const findCheapestConnection = require('./cheapestConnection.service')
 
-const processVirtualInterlinig = async function (flightList, BFMresource, DSSresource, DSS, BFM, market) {
+const processVirtualInterlinig = async function (flightList, BFMresource, DSSresource, DSS, BFM, market, ypsilonResource, itinParser) {
   const csvStream = csv.createWriteStream({headers: true})
-  const writableStream = fs.createWriteStream(`./logs/${new Date().getTime()}_log.csv`)
+  const writableStream = fs.createWriteStream(`./logs/${market}_${new Date().getTime()}_log.csv`)
   csvStream.pipe(writableStream);
 
   for (const flightInitQuery of flightList) {
@@ -24,9 +24,9 @@ const processVirtualInterlinig = async function (flightList, BFMresource, DSSres
     .then(DSSdata => {
       currentFlight.directions = DSS.getSortedDSSbyDirection(DSS.getMmlList(DSS.getMmpList(DSSdata)))
       console.log('DSS call')
-      return BFM.getBFMviaTransferPoint(BFMresource, currentFlight, 'LCCtoGDS')
+      return BFM.getBFMviaTransferPoint(BFMresource, ypsilonResource, itinParser, currentFlight, 'LCCtoGDS')
     })
-    .then(() => BFM.getBFMviaTransferPoint(BFMresource, currentFlight, 'GDStoLCC'))
+    .then(() => BFM.getBFMviaTransferPoint(BFMresource, ypsilonResource, itinParser, currentFlight, 'GDStoLCC'))
     .then(() => findCheapestConnection(currentFlight, 'LCCtoGDS'))
     .then(() => findCheapestConnection(currentFlight, 'GDStoLCC'))
     .then(() => logCurrentFlightData(csvStream, currentFlight))

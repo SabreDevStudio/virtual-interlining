@@ -2,8 +2,8 @@ const colors = require('./colorCodes.service')
 const getMiliseconds = hour => 1000 * 60 * 60 * hour
 
 const isDatesHaveEnoughTimeForTransfer = (date1, date2) => 
-      new Date(date2).getTime() - new Date(date1).getTime() > getMiliseconds(2) &&
-      new Date(date2).getTime() - new Date(date1).getTime() < getMiliseconds(6)
+  new Date(date2).getTime() - new Date(date1).getTime() > getMiliseconds(2) &&
+  new Date(date2).getTime() - new Date(date1).getTime() < getMiliseconds(6)
 
 const sortArrayBySummarizedPrice = list => list.sort((a, b) => a.summarizedPrice - b.summarizedPrice)
 
@@ -15,31 +15,29 @@ const findCheapestConnection = (currentFlight, direction) => {
       currentFlight.directions[direction].chunk1list.forEach(itinA => {
         process.stdout.write('.')
         currentFlight.directions[direction].chunk2list.forEach(itinB => {
-          let itinAFlightSegment = itinA.AirItinerary.OriginDestinationOptions.OriginDestinationOption[0].FlightSegment
-          let itinBFlightSegment = itinB.AirItinerary.OriginDestinationOptions.OriginDestinationOption[0].FlightSegment
-
-          if(isDatesHaveEnoughTimeForTransfer(itinAFlightSegment[itinAFlightSegment.length - 1].ArrivalDateTime,itinBFlightSegment[0].DepartureDateTime) &&
-             itinA.transferPoint === itinB.transferPoint) {
+          if(isDatesHaveEnoughTimeForTransfer(itinA.arrivalDateTime, itinB.departureDateTime) &&
+              itinA.transferPoint === itinB.transferPoint) {
               comparableItins.push({itinA: itinA, itinB: itinB})
           }
         })
       })
 
-      let comparableItinsList = comparableItins.map(el => {
-        el.summarizedPrice = el.itinA.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount + 
-                            el.itinB.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount
-        return el
-      })
+      if (comparableItins.length) {
+        let comparableItinsList = comparableItins.map(el => {
+          el.summarizedPrice = el.itinA.totalPrice + el.itinB.totalPrice
+          return el
+        })
 
-      let cheapestComparableItins = sortArrayBySummarizedPrice(comparableItinsList)[0]
-      currentFlight.directions[direction].result = {
-        itinA: cheapestComparableItins.itinA,
-        itinB: cheapestComparableItins.itinB,
-        summarizedPrice: cheapestComparableItins.summarizedPrice
+        let cheapestComparableItins = sortArrayBySummarizedPrice(comparableItinsList)[0]
+        currentFlight.directions[direction].result = {
+          itinA: cheapestComparableItins.itinA,
+          itinB: cheapestComparableItins.itinB,
+          summarizedPrice: cheapestComparableItins.summarizedPrice
+        }
+        console.log(`${colors.yellow}${'\n'}Cheapest connection has been found for ${direction}.${colors.reset}`);
+      } else {
+        console.log('NO comparableItins........!');
       }
-      
-      console.log(`${colors.yellow}${'\n'}Cheapest connection has been found for ${direction}.${colors.reset}`);
-      
       resolve()
     } else {
       console.log(`${colors.red}No connection for ${direction}.${colors.reset}`);
