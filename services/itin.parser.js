@@ -9,9 +9,15 @@ const setTransferAndViaData = (el, directionItem, itemNumber, transferPoint) => 
   return el
 }
 
-const getYpsilonItin = (el, directionItem, itemNumber, transferPoint) => {
+const getYpsilonItin = (el, directionItem, itemNumber, transferPoint, innerFlight) => {
+  let flightSegment;
+  if (innerFlight) {
+    flightSegment = innerFlight.segments
+  } else {
+    flightSegment = el.outbound.flights[0].segments
+  }
+
   setTransferAndViaData(el, directionItem, itemNumber, transferPoint)
-  let flightSegment = el.outbound.flights[0].segments
   el.departureDateTime = flightSegment[0].depTime
   el.arrivalDateTime = flightSegment[flightSegment.length - 1].arrTime
   el.totalPrice = el.price + el.tax,

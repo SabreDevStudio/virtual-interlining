@@ -109,9 +109,22 @@ const BFM = {
           }).then(ypsilonData => {
             if (ypsilonData && ypsilonData.statusCode === 200) {
               let itinList = ypsilonData.body.tarifs.map(el => itinParser.getYpsilonItin(el, directionItem, itemNumber, transferPoint))
+              console.log('itinList: ', itinList.length);
+              
+              let newItinList = []
 
-              currentFlight.directions[direction][chunkListNumber] = currentFlight.directions[direction][chunkListNumber].concat(itinList)
-              console.log(`success Ypsilon call for ${itemNumber} ${direction}: ${directionItem[itemNumber].OCT} => ${directionItem[itemNumber].DCT}, ${itinList.length}`);
+              ypsilonData.body.tarifs.forEach(el => {
+                newItinList.push(itinParser.getYpsilonItin(el, directionItem, itemNumber, transferPoint))
+                if (el.outbound.flights.length > 1) {
+                  el.outbound.flights.forEach(innerFlight => {
+                    newItinList.push(itinParser.getYpsilonItin(el, directionItem, itemNumber, transferPoint, innerFlight))
+                  })
+                }
+              })
+              console.log('newItinList: ', newItinList.length);
+
+              currentFlight.directions[direction][chunkListNumber] = currentFlight.directions[direction][chunkListNumber].concat(newItinList)
+              console.log(`success Ypsilon call for ${itemNumber} ${direction}: ${directionItem[itemNumber].OCT} => ${directionItem[itemNumber].DCT}, ${newItinList.length}`);
             }
             resolve()
           })
