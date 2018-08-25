@@ -108,19 +108,21 @@ const BFM = {
             dstCity: directionItem[itemNumber].DCT
           }).then(ypsilonData => {
             if (ypsilonData && ypsilonData.statusCode === 200) {
-              let itinList = ypsilonData.body.tarifs.map(el => itinParser.getYpsilonItin(el, directionItem, itemNumber, transferPoint))
-              console.log('itinList: ', itinList.length);
-              
+              console.log('old ItinList: ', ypsilonData.body.tarifs.length);
               let newItinList = []
 
-              ypsilonData.body.tarifs.forEach(el => {
-                newItinList.push(itinParser.getYpsilonItin(el, directionItem, itemNumber, transferPoint))
-                if (el.outbound.flights.length > 1) {
-                  el.outbound.flights.forEach(innerFlight => {
-                    newItinList.push(itinParser.getYpsilonItin(el, directionItem, itemNumber, transferPoint, innerFlight))
-                  })
-                }
-              })
+              if (ypsilonData.body.tarifs.length) {
+                ypsilonData.body.tarifs.forEach(el => {
+                  if (el.outbound.flights.length > 1) {
+                    el.outbound.flights.forEach(flight => {
+                      newItinList.push(itinParser.getYpsilonItin(el, directionItem, itemNumber, transferPoint, flight.segments))
+                    })
+                  } else {
+                    newItinList.push(itinParser.getYpsilonItin(el, directionItem, itemNumber, transferPoint, el.outbound.flights[0].segments))
+                  }
+                })
+              }
+              
               console.log('newItinList: ', newItinList.length);
 
               currentFlight.directions[direction][chunkListNumber] = currentFlight.directions[direction][chunkListNumber].concat(newItinList)
