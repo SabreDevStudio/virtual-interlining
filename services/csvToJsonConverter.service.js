@@ -8,6 +8,9 @@ let marketList = {
   NO: './csv/NO.csv',
   SE: './csv/SE.csv',
   ES: './csv/ES.csv',
+  ES1: './csv/ES.1.csv',
+  ES2: './csv/ES.2.csv',
+  ES3: './csv/ES.3.csv',
   FR: './csv/FR.csv'
 }
 

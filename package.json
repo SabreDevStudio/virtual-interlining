@@ -8,7 +8,10 @@
     "start": "SET MARKET='GB' && node app.js",
     "GB": "SET NODE_ENV=GB&& node app.js",
     "ES": "SET NODE_ENV=ES&& node app.js",
-    "FR": "SET NODE_ENV=FR&& node app.js"
+    "FR": "SET NODE_ENV=FR&& node app.js",
+    "ES1": "SET NODE_ENV=ES1&& node app.js",
+    "ES2": "SET NODE_ENV=ES2&& node app.js",
+    "ES3": "SET NODE_ENV=ES3&& node app.js"
   },
   "author": "",
   "license": "ISC",

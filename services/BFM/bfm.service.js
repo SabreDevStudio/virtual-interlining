@@ -107,7 +107,7 @@ const BFM = {
             depCity: directionItem[itemNumber].OCT,
             dstCity: directionItem[itemNumber].DCT
           }).then(ypsilonData => {
-            if (ypsilonData && ypsilonData.statusCode === 200) {
+            if (ypsilonData && ypsilonData.statusCode === 200 && ypsilonData.body && ypsilonData.body.tarifs) {
               console.log('old ItinList: ', ypsilonData.body.tarifs.length);
               let newItinList = []
 
@@ -138,7 +138,9 @@ const BFM = {
             ARRLocation: directionItem[itemNumber].DCT,
             DEPdateTimeLeg1: currentFlight.flightInitQuery.DEPdateTimeLeg1
           }).then(data => {
-            if(data && data.statusCode === 200) {
+            if(data && data.statusCode === 200 && data.body && data.body.OTA_AirLowFareSearchRS && 
+              data.body.OTA_AirLowFareSearchRS.PricedItineraries && 
+              data.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary) {
               let itinList = data.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary
               .map(el => itinParser.getBFMitin(el, directionItem, itemNumber, transferPoint))
   
@@ -164,7 +166,10 @@ const BFM = {
   },
 
   handleBFMresponse: (currentFlight, BFMresponse) => {
-    if (BFMresponse && BFMresponse.statusCode === 200) {
+    if (BFMresponse && BFMresponse.statusCode === 200 && BFMresponse.body &&
+      BFMresponse.body.OTA_AirLowFareSearchRS &&
+      BFMresponse.body.OTA_AirLowFareSearchRS.PricedItineraries &&
+      BFMresponse.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary) {
       currentFlight.GDS = getSortedItinListByPrice(BFMresponse.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary)[0]
     }
   }
