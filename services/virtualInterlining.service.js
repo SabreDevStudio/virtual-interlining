@@ -16,13 +16,12 @@ const processVirtualInterlinig = async function (flightList, BFMresource, DSSres
     await BFMresource.getBFM(currentFlight.flightInitQuery)
     .then(BFMresponse => {
       BFM.handleBFMresponse(currentFlight, BFMresponse)
-      console.log('BFM response: ', BFMresponse.statusCode);
       return DSSresource.getTransferAirport(currentFlight.flightInitQuery.DEPLocation, 
         currentFlight.flightInitQuery.ARRLocation, 
         currentFlight.flightInitQuery.DEPdateTimeLeg1)
     })
     .then(DSSdata => {
-      currentFlight.directions = DSS.getSortedDSSbyDirection(DSS.getMmlList(DSS.getMmpList(DSSdata)))
+      currentFlight.directions = DSS.getSortedDSSbyDirection(DSS.getMmlList(DSSdata))
       console.log('DSS call')
       return BFM.getBFMviaTransferPoint(BFMresource, ypsilonResource, itinParser, currentFlight, 'LCCtoGDS')
     })

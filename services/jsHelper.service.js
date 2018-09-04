@@ -49,6 +49,18 @@ const jsHelper = {
     return `${year}-${month}-${date}T00:00:00`
   },
 
+  getFilteredDateWithTime: d => {
+    //here is schema: "2018-08-13T10:20"
+    let year = d.getFullYear()
+    let month = (d.getMonth() + '').length === 1 && d.getMonth() !== 9 ? `0${d.getMonth() + 1}` : d.getMonth() + 1
+    let date = (d.getDate() + '').length === 1 ? `0${d.getDate()}` : d.getDate()
+    let hours = (d.getHours() + '').length === 1 ? `0${d.getHours()}` : d.getHours()
+    let minutes = (d.getMinutes() + '').length === 1 ? `0${d.getMinutes()}` : d.getMinutes()
+    return `${year}-${month}-${date}T${hours}:${minutes}`
+  },
+
+  //GDStoLCCsegments
+
   getFullFlightsList: (flightPoints, flightDates) => {
     let fullList = []
   

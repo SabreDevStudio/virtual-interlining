@@ -1,3 +1,5 @@
+const moment = require('moment')
+
 const getTripCombination = (direction, currentFlight) => currentFlight.directions[direction].result
 
 const getItinsTotalPrice = trip => trip ? trip.summarizedPrice : null
@@ -24,31 +26,88 @@ const getViaCity = trip => trip ? trip.itinA.via.DCT : null
 const getViaAirport = trip => {
   return trip ? trip.itinA.via.DST : null
 }
-//trip duration in hours
-//depurture and arrival time of whole trip
-//eirline per each segment
-//errors in separate column
+
+const getSegmentChunk = (list, index, chunk) => list[index] ? list[index][chunk] : null
+const getHoursBetweenDates = (date1, date2) => {
+  if (date1, date2) {
+    let duration = moment.duration(moment(date2).diff(moment(date1)))
+    return `${duration.get("hours")}:${duration.get("minutes")}`
+  } else {
+    return null
+  }
+}
 
 module.exports = (csvStream, currentFlight) => {
   let LCCtoGDStrip = getTripCombination('LCCtoGDS', currentFlight)
   let GDStoLCCtrip = getTripCombination('GDStoLCC', currentFlight)
+  let LCCtoGDSsegments = LCCtoGDStrip ? LCCtoGDStrip.itinA.tripCalendar.concat(LCCtoGDStrip.itinB.tripCalendar) : []
+  let GDStoLCCsegments = GDStoLCCtrip ? GDStoLCCtrip.itinA.tripCalendar.concat(GDStoLCCtrip.itinB.tripCalendar) : []
 
   csvStream.write({
     DEP: currentFlight.flightInitQuery.DEPLocation,
     ARR: currentFlight.flightInitQuery.ARRLocation,
     DEP_date: currentFlight.flightInitQuery.DEPdateTimeLeg1,
+
     GDS: getGDSprice(currentFlight) || null,
     GDS_amount_of_stops: getAmoutOfStops(currentFlight.GDS),
 
     LCCtoGDS_price: getItinsTotalPrice(LCCtoGDStrip),
     LCCtoGDS_via_city: getViaCity(LCCtoGDStrip),
     LCCtoGDS_via_airport: getViaAirport(LCCtoGDStrip),
-    LCCtoGDS_number_of_stops: LCCtoGDStrip ? LCCtoGDStrip.itinA.amountOfStops + LCCtoGDStrip.itinB.amountOfStops : null,
+    LCCtoGDS_number_of_stops: LCCtoGDStrip ? LCCtoGDStrip.itinA.amountOfStops + LCCtoGDStrip.itinB.amountOfStops + 1: null,
+    LCCtoGDS_carrier_to_transfer_point: LCCtoGDStrip ? LCCtoGDStrip.itinA.carrier : null,
+    LCCtoGDS_carrier_from_transfer_point: LCCtoGDStrip ? LCCtoGDStrip.itinB.carrier : null,
+    LCCtoGDS_seg1_dep_time: getSegmentChunk(LCCtoGDSsegments, 0, 'depTime'),
+    LCCtoGDS_seg1_arr_time: getSegmentChunk(LCCtoGDSsegments, 0, 'arrTime'),
+    LCCtoGDS_seg1_hours_to_next_flight: getHoursBetweenDates(getSegmentChunk(LCCtoGDSsegments, 0, 'arrTime'), getSegmentChunk(LCCtoGDSsegments, 1, 'depTime')),
+    LCCtoGDS_seg1_dep_from: getSegmentChunk(LCCtoGDSsegments, 0, 'depFrom'),
+    LCCtoGDS_seg1_arr_to: getSegmentChunk(LCCtoGDSsegments, 0, 'arrTo'),
+
+    LCCtoGDS_seg2_dep_time: getSegmentChunk(LCCtoGDSsegments, 1, 'depTime'),
+    LCCtoGDS_seg2_arr_time: getSegmentChunk(LCCtoGDSsegments, 1, 'arrTime'),
+    LCCtoGDS_seg2_hours_to_next_flight: getHoursBetweenDates(getSegmentChunk(LCCtoGDSsegments, 1, 'arrTime'), getSegmentChunk(LCCtoGDSsegments, 2, 'depTime')),
+    LCCtoGDS_seg2_dep_from: getSegmentChunk(LCCtoGDSsegments, 1, 'depFrom'),
+    LCCtoGDS_seg2_arr_to: getSegmentChunk(LCCtoGDSsegments, 1, 'arrTo'),
+
+    LCCtoGDS_seg3_dep_time: getSegmentChunk(LCCtoGDSsegments, 2, 'depTime'),
+    LCCtoGDS_seg3_arr_time: getSegmentChunk(LCCtoGDSsegments, 2, 'arrTime'),
+    LCCtoGDS_seg3_hours_to_next_flight: getHoursBetweenDates(getSegmentChunk(LCCtoGDSsegments, 2, 'arrTime'), getSegmentChunk(LCCtoGDSsegments, 3, 'depTime')),
+    LCCtoGDS_seg3_dep_from: getSegmentChunk(LCCtoGDSsegments, 2, 'depFrom'),
+    LCCtoGDS_seg3_arr_to: getSegmentChunk(LCCtoGDSsegments, 2, 'arrTo'),
+
+    LCCtoGDS_seg4_dep_time: getSegmentChunk(LCCtoGDSsegments, 3, 'depTime'),
+    LCCtoGDS_seg4_arr_time: getSegmentChunk(LCCtoGDSsegments, 3, 'arrTime'),
+    LCCtoGDS_seg4_dep_from: getSegmentChunk(LCCtoGDSsegments, 3, 'depFrom'),
+    LCCtoGDS_seg4_arr_to: getSegmentChunk(LCCtoGDSsegments, 3, 'arrTo'),
 
     GDStoLCC_price: getItinsTotalPrice(GDStoLCCtrip),
     GDStoLCC_via_city: getViaCity(GDStoLCCtrip),
     GDStoLCC_via_airport: getViaAirport(GDStoLCCtrip),
-    GDStoLCC_number_of_stops: GDStoLCCtrip ? GDStoLCCtrip.itinA.amountOfStops + GDStoLCCtrip.itinB.amountOfStops : null,
+    GDStoLCC_number_of_stops: GDStoLCCtrip ? GDStoLCCtrip.itinA.amountOfStops + GDStoLCCtrip.itinB.amountOfStops + 1: null,
+    GDStoLCC_carrier_to_transfer_point: GDStoLCCtrip ? GDStoLCCtrip.itinA.carrier : null,
+    GDStoLCC_carrier_from_transfer_point: GDStoLCCtrip ? GDStoLCCtrip.itinB.carrier : null,
+    GDStoLCC_seg1_dep_time: getSegmentChunk(GDStoLCCsegments, 0, 'depTime'),
+    GDStoLCC_seg1_arr_time: getSegmentChunk(GDStoLCCsegments, 0, 'arrTime'),
+    GDStoLCC_seg1_hours_to_next_flight: getHoursBetweenDates(getSegmentChunk(GDStoLCCsegments, 0, 'arrTime'), getSegmentChunk(GDStoLCCsegments, 1, 'depTime')),
+    GDStoLCC_seg1_dep_from: getSegmentChunk(GDStoLCCsegments, 0, 'depFrom'),
+    GDStoLCC_seg1_arr_to: getSegmentChunk(GDStoLCCsegments, 0, 'arrTo'),
+
+    GDStoLCC_seg2_dep_time: getSegmentChunk(GDStoLCCsegments, 1, 'depTime'),
+    GDStoLCC_seg2_arr_time: getSegmentChunk(GDStoLCCsegments, 1, 'arrTime'),
+    GDStoLCC_seg2_hours_to_next_flight: getHoursBetweenDates(getSegmentChunk(GDStoLCCsegments, 1, 'arrTime'), getSegmentChunk(GDStoLCCsegments, 2, 'depTime')),
+    GDStoLCC_seg2_dep_from: getSegmentChunk(GDStoLCCsegments, 1, 'depFrom'),
+    GDStoLCC_seg2_arr_to: getSegmentChunk(GDStoLCCsegments, 1, 'arrTo'),
+
+    GDStoLCC_seg3_dep_time: getSegmentChunk(GDStoLCCsegments, 2, 'depTime'),
+    GDStoLCC_seg3_arr_time: getSegmentChunk(GDStoLCCsegments, 2, 'arrTime'),
+    GDStoLCC_seg3_hours_to_next_flight: getHoursBetweenDates(getSegmentChunk(GDStoLCCsegments, 2, 'arrTime'), getSegmentChunk(GDStoLCCsegments, 3, 'depTime')),
+    GDStoLCC_seg3_dep_from: getSegmentChunk(GDStoLCCsegments, 2, 'depFrom'),
+    GDStoLCC_seg3_arr_to: getSegmentChunk(GDStoLCCsegments, 2, 'arrTo'),
+
+    GDStoLCC_seg4_dep_time: getSegmentChunk(GDStoLCCsegments, 3, 'depTime'),
+    GDStoLCC_seg4_arr_time: getSegmentChunk(GDStoLCCsegments, 3, 'arrTime'),
+    GDStoLCC_seg4_dep_from: getSegmentChunk(GDStoLCCsegments, 3, 'depFrom'),
+    GDStoLCC_seg4_arr_to: getSegmentChunk(GDStoLCCsegments, 3, 'arrTo'),
 
     isCheaper: isCheaper(currentFlight, GDStoLCCtrip, LCCtoGDStrip)//true when cheaper than GDS
   });
