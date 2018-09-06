@@ -3,10 +3,11 @@ const fs = require('fs')
 const logCurrentFlightData = require('./log.service')
 const findCheapestConnection = require('./cheapestConnection.service')
 
-const processVirtualInterlinig = async function (flightList, BFMresource, DSSresource, DSS, BFM, market, ypsilonResource, itinParser) {
+const processVirtualInterlinigLoop = async function (flightList, BFMresource, DSSresource, DSS, BFM, market, ypsilonResource, itinParser, cb) {
+  let VIresult = []
   const csvStream = csv.createWriteStream({headers: true})
   const writableStream = fs.createWriteStream(`./logs/${market}_${new Date().getTime()}_log.csv`)
-  csvStream.pipe(writableStream);
+  csvStream.pipe(writableStream)
 
   for (const flightInitQuery of flightList) {
     let currentFlight = {flightInitQuery: flightInitQuery, market: market}
@@ -28,12 +29,17 @@ const processVirtualInterlinig = async function (flightList, BFMresource, DSSres
     .then(() => BFM.getBFMviaTransferPoint(BFMresource, ypsilonResource, itinParser, currentFlight, 'GDStoLCC'))
     .then(() => findCheapestConnection(currentFlight, 'LCCtoGDS'))
     .then(() => findCheapestConnection(currentFlight, 'GDStoLCC'))
-    .then(() => logCurrentFlightData(csvStream, currentFlight))
+    .then(() => {
+      VIresult.push(currentFlight)
+      logCurrentFlightData(csvStream, currentFlight)
+    })
     .catch(err => { throw new Error(err) })
-    console.log('----------------------------------------NEXT FLIGHT----------------------------------------');
+    console.log('----------------------------------------NEXT FLIGHT----------------------------------------')
   }
-  csvStream.end();
-  console.log('done!');
+
+  cb(VIresult)
+  csvStream.end()
+  console.log('done!')
 }
 
-module.exports = processVirtualInterlinig
+module.exports = processVirtualInterlinigLoop

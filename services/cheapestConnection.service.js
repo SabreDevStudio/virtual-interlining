@@ -1,11 +1,12 @@
 const colors = require('./colorCodes.service')
+const currencyConverter = require('./currencyConverter.service')
 const getMiliseconds = hour => 1000 * 60 * 60 * hour
 
 const isDatesHaveEnoughTimeForTransfer = (date1, date2) => 
   new Date(date2).getTime() - new Date(date1).getTime() > getMiliseconds(2) &&
   new Date(date2).getTime() - new Date(date1).getTime() < getMiliseconds(6)
 
-const sortArrayBySummarizedPrice = list => list.sort((a, b) => a.summarizedPrice - b.summarizedPrice)
+const sortArrayBySummarizedPriceInEuro = list => list.sort((a, b) => a.summarizedPriceInEuro - b.summarizedPriceInEuro)
 
 const findCheapestConnection = (currentFlight, direction) => {
   return new Promise(resolve => {
@@ -24,23 +25,24 @@ const findCheapestConnection = (currentFlight, direction) => {
 
       if (comparableItins.length) {
         let comparableItinsList = comparableItins.map(el => {
-          el.summarizedPrice = el.itinA.totalPrice + el.itinB.totalPrice
+          el.summarizedPriceInEuro = currencyConverter.toEuro(el.itinA.totalPrice, el.itinA.currency) + 
+                               currencyConverter.toEuro(el.itinB.totalPrice, el.itinB.currency)
           return el
         })
 
-        let cheapestComparableItins = sortArrayBySummarizedPrice(comparableItinsList)[0]
+        let cheapestComparableItins = sortArrayBySummarizedPriceInEuro(comparableItinsList)[0]
         currentFlight.directions[direction].result = {
           itinA: cheapestComparableItins.itinA,
           itinB: cheapestComparableItins.itinB,
-          summarizedPrice: cheapestComparableItins.summarizedPrice
+          summarizedPriceInEuro: cheapestComparableItins.summarizedPriceInEuro
         }
-        console.log(`${colors.yellow}${'\n'}Cheapest connection has been found for ${direction}.${colors.reset}`);
+        console.log(`${colors.yellow}${'\n'}Cheapest connection has been found for ${direction}.${colors.reset}`)
       } else {
-        console.log('NO comparableItins........!');
+        console.log('NO comparableItins........!')
       }
       resolve()
     } else {
-      console.log(`${colors.red}No connection for ${direction}.${colors.reset}`);
+      console.log(`${colors.red}No connection for ${direction}.${colors.reset}`)
       resolve()
     }
   })

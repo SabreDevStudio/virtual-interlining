@@ -3,8 +3,7 @@
 const {JSDOM} = require('jsdom')
 const js2xmlparser = require('js2xmlparser')
 const jsHelper = require('../jsHelper.service')
-const request = require('request');
-
+const request = require('request')
 
 const getRequest = (origin, destination, date) => {
   return {

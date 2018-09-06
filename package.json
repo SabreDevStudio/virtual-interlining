@@ -1,10 +1,11 @@
 {
   "name": "virtual-interlining",
   "version": "1.0.0",
-  "description": "",
+  "description": "virtual interlining application",
+  "private": true,
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node ./node_modules/mocha/bin/mocha --timeout 55000",
     "start": "SET MARKET='GB' && node app.js",
     "GB": "SET NODE_ENV=GB&& node app.js",
     "ES": "SET NODE_ENV=ES&& node app.js",
@@ -23,5 +24,9 @@
     "jsdom": "^11.11.0",
     "moment": "^2.22.2",
     "request": "^2.87.0"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "mocha": "^5.2.0"
   }
 }

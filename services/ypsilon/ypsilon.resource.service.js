@@ -16,7 +16,8 @@ const getBody = tripInfo => {
       "limit":0,
       "fareTypes": [
         "LOW"
-      ]
+      ],
+      "currency": ["EUR"]
     }
   }
 }

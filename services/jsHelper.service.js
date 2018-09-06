@@ -2,7 +2,7 @@
 
 const jsHelper = {
   toOneLineString: structure => {
-    let oneLineString = '';
+    let oneLineString = ''
     for (let key in structure) {
       oneLineString = oneLineString.concat(key + '=' + structure[key] + '&')
     }
@@ -34,12 +34,11 @@ const jsHelper = {
   },
 
   parseDepartureAndArrivalList: list => list.map(el => {
-      return {
-        DEP: el.split('-')[0],
-        ARR: el.split('-')[1]
-      }
-    })
-  ,
+    return {
+      DEP: el.split('-')[0],
+      ARR: el.split('-')[1]
+    }
+  }),
 
   getFilteredDate: d => {
     //here is schema: "2018-08-13T00:00:00"
@@ -73,7 +72,7 @@ const jsHelper = {
           DEPdateTimeLeg2: dates.ARR ? jsHelper.getFilteredDate(dates.ARR) : null
         })
       })
-    });
+    })
   
     return fullList
   },

@@ -13,9 +13,8 @@ csvToJsonConverter().then(data => {
   let departureAndArrivalList = jsHelper.parseDepartureAndArrivalList(data.list)
   let flightDates = getOneWayFlightDateList()
   let allFlights = jsHelper.getFullFlightsList(departureAndArrivalList, flightDates)
-  // .slice(0, 50)
 
-  processVirtualInterlinig(allFlights, BFMresource, DSSresource, DSS, BFM, data.market, ypsilonResource, itinParser)
+  processVirtualInterlinig(allFlights, BFMresource, DSSresource, DSS, BFM, data.market, ypsilonResource, itinParser, () => {})
 }, err => {
   throw new Error(err)
 })

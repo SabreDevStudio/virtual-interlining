@@ -1,11 +1,18 @@
 const moment = require('moment')
+const currencyConverter = require('./currencyConverter.service')
 
 const getTripCombination = (direction, currentFlight) => currentFlight.directions[direction].result
 
-const getItinsTotalPrice = trip => trip ? trip.summarizedPrice : null
+const getItinsTotalPrice = trip =>  trip ? currencyConverter.roundNumber(trip.summarizedPriceInEuro) : null
 
 const getGDSprice = currentFlight => {
-  return currentFlight.GDS ? currentFlight.GDS.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount : null
+  if (currentFlight.GDS) {
+    let amount = currentFlight.GDS.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount
+    let currency = currentFlight.GDS.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.CurrencyCode
+    return currencyConverter.roundNumber(currencyConverter.toEuro(amount, currency))
+  } else {
+    return null
+  }
 }
 
 const isCheaper = (currentFlight, GDStoLCCtrip, LCCtoGDStrip) => {
@@ -20,12 +27,6 @@ const isCheaper = (currentFlight, GDStoLCCtrip, LCCtoGDStrip) => {
 }
 
 const getAmoutOfStops = GDS => GDS ? GDS.AirItinerary.OriginDestinationOptions.OriginDestinationOption[0].FlightSegment.length - 1 : null
-
-const getViaCity = trip => trip ? trip.itinA.via.DCT : null
-
-const getViaAirport = trip => {
-  return trip ? trip.itinA.via.DST : null
-}
 
 const getSegmentChunk = (list, index, chunk) => list[index] ? list[index][chunk] : null
 const getHoursBetweenDates = (date1, date2) => {
@@ -50,10 +51,7 @@ module.exports = (csvStream, currentFlight) => {
 
     GDS: getGDSprice(currentFlight) || null,
     GDS_amount_of_stops: getAmoutOfStops(currentFlight.GDS),
-
     LCCtoGDS_price: getItinsTotalPrice(LCCtoGDStrip),
-    LCCtoGDS_via_city: getViaCity(LCCtoGDStrip),
-    LCCtoGDS_via_airport: getViaAirport(LCCtoGDStrip),
     LCCtoGDS_number_of_stops: LCCtoGDStrip ? LCCtoGDStrip.itinA.amountOfStops + LCCtoGDStrip.itinB.amountOfStops + 1: null,
     LCCtoGDS_carrier_to_transfer_point: LCCtoGDStrip ? LCCtoGDStrip.itinA.carrier : null,
     LCCtoGDS_carrier_from_transfer_point: LCCtoGDStrip ? LCCtoGDStrip.itinB.carrier : null,
@@ -81,8 +79,6 @@ module.exports = (csvStream, currentFlight) => {
     LCCtoGDS_seg4_arr_to: getSegmentChunk(LCCtoGDSsegments, 3, 'arrTo'),
 
     GDStoLCC_price: getItinsTotalPrice(GDStoLCCtrip),
-    GDStoLCC_via_city: getViaCity(GDStoLCCtrip),
-    GDStoLCC_via_airport: getViaAirport(GDStoLCCtrip),
     GDStoLCC_number_of_stops: GDStoLCCtrip ? GDStoLCCtrip.itinA.amountOfStops + GDStoLCCtrip.itinB.amountOfStops + 1: null,
     GDStoLCC_carrier_to_transfer_point: GDStoLCCtrip ? GDStoLCCtrip.itinA.carrier : null,
     GDStoLCC_carrier_from_transfer_point: GDStoLCCtrip ? GDStoLCCtrip.itinB.carrier : null,
@@ -110,5 +106,5 @@ module.exports = (csvStream, currentFlight) => {
     GDStoLCC_seg4_arr_to: getSegmentChunk(GDStoLCCsegments, 3, 'arrTo'),
 
     isCheaper: isCheaper(currentFlight, GDStoLCCtrip, LCCtoGDStrip)//true when cheaper than GDS
-  });
+  })
 }

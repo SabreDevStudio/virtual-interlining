@@ -2,12 +2,6 @@ const jsHelper = require('./jsHelper.service')
 
 const setTransferAndViaData = (el, directionItem, itemNumber, transferPoint) => {
   el.transferPoint = directionItem[itemNumber][transferPoint]
-  el.via = {
-    OCT: directionItem[itemNumber].OCT,
-    DCT: directionItem[itemNumber].DCT,
-    ORG: directionItem[itemNumber].ORG,
-    DST: directionItem[itemNumber].DST
-  }
   return el
 }
 
@@ -41,9 +35,10 @@ const getYpsilonItin = (el, directionItem, itemNumber, transferPoint, flightSegm
   setTransferAndViaData(el, directionItem, itemNumber, transferPoint)
   el.departureDateTime = flightSegments[0].depTime
   el.arrivalDateTime = flightSegments[flightSegments.length - 1].arrTime
-  el.totalPrice = el.price + el.tax,
+  el.totalPrice = el.price + el.tax
   el.amountOfStops = flightSegments.length - 1
   el.carrier = el.vcr
+  el.currency = el.currency
   el.tripCalendar = getTripCalendar(flightSegments, 'ypsilon')
   return el
 }
@@ -56,6 +51,7 @@ const getBFMitin = (el, directionItem, itemNumber, transferPoint) => {
   el.amountOfStops = flightSegment.length - 1
   el.carrier = el.TPA_Extensions.ValidatingCarrier.Code
   el.tripCalendar = getTripCalendar(flightSegment, 'bfm')
+  el.currency = el.AirItineraryPricingInfo["0"].ItinTotalFare.TotalFare.CurrencyCode
   return el
 }
 

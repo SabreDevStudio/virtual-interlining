@@ -13,8 +13,6 @@ let marketList = {
   RU: './csv/RU.csv'
 }
 
-
-
 const getMarketDirections = () => new Promise((resolve, reject) => {
   let market = process.env.NODE_ENV || 'GB'
 

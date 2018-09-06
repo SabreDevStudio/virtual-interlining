@@ -1,91 +1,12 @@
 
 'use strict'
 
+const BFMres = require('./bfm.resource.service')
+
 const getSortedItinListByPrice = list => list.sort((a, b) =>
       a.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount - b.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount)
 
 const BFM = {
-  getBFMbody: BFMdetails => {
-    return {
-      "OTA_AirLowFareSearchRQ": {
-        "OriginDestinationInformation": [
-          {
-            "DepartureDateTime": BFMdetails.DEPdateTimeLeg1,
-            "DestinationLocation": {
-              "LocationCode": BFMdetails.ARRLocation
-            },
-            "OriginLocation": {
-              "LocationCode": BFMdetails.DEPLocation
-            },
-            "RPH": "1",
-            "TPA_Extensions": {}
-          }
-        ],
-        "POS": {
-          "Source": [
-            {
-              "RequestorID": {
-                "CompanyName": {
-                  "Code": "TN"
-                },
-                "ID": "REQ.ID",
-                "Type": "0.AAA.X"
-              },
-              "PseudoCityCode": "F8SE"
-            }
-          ]
-        },
-        "TPA_Extensions": {
-          "IntelliSellTransaction": {
-            "RequestType": {
-              "Name": "200ITINS"
-            }
-          }
-        },
-        "TravelPreferences": {
-          "CabinPref": [
-            {
-              "Cabin": "Y"
-            }
-          ],
-          "TPA_Extensions": {
-            "NumTrips": {
-              "Number": 200
-            },
-            "FlexibleFares": {
-              "FareParameters": [
-                {}
-              ]
-            }
-          }
-        },
-        "TravelerInfoSummary": {
-          "AirTravelerAvail": [
-            {
-              "PassengerTypeQuantity": [
-                {
-                  "Code": "ADT",
-                  "Quantity": 1
-                }
-              ]
-            }
-          ],
-          "PriceRequestInformation": {
-            "TPA_Extensions": {
-              "BrandedFareIndicators": {
-                "ReturnCheapestUnbrandedFare": {
-                  "Ind": true
-                },
-                "SingleBrandedFare": true,
-                "MultipleBrandedFares": false
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-
   getFiltereDeirectionsByUniqueTransferPoint: (currentFlight, direction) => {
     let uniqueValues = []
     return currentFlight.directions[direction].source.filter(el => {
@@ -108,7 +29,6 @@ const BFM = {
             dstCity: directionItem[itemNumber].DCT
           }).then(ypsilonData => {
             if (ypsilonData && ypsilonData.statusCode === 200 && ypsilonData.body && ypsilonData.body.tarifs) {
-              console.log('old ItinList: ', ypsilonData.body.tarifs.length);
               let newItinList = []
 
               if (ypsilonData.body.tarifs.length) {
@@ -122,18 +42,16 @@ const BFM = {
                   }
                 })
               }
-              
-              console.log('newItinList: ', newItinList.length);
 
               currentFlight.directions[direction][chunkListNumber] = currentFlight.directions[direction][chunkListNumber].concat(newItinList)
-              console.log(`success Ypsilon call for ${itemNumber} ${direction}: ${directionItem[itemNumber].OCT} => ${directionItem[itemNumber].DCT}, ${newItinList.length}`);
+              console.log(`success Ypsilon call for ${itemNumber} ${direction}: ${directionItem[itemNumber].OCT} => ${directionItem[itemNumber].DCT}, ${newItinList.length}`)
             }
             resolve()
           })
         })
       } else {
         return new Promise(resolve => {
-          BFMresource.getBFM({
+          BFMres.getBFM({
             DEPLocation: directionItem[itemNumber].OCT,
             ARRLocation: directionItem[itemNumber].DCT,
             DEPdateTimeLeg1: currentFlight.flightInitQuery.DEPdateTimeLeg1
@@ -145,7 +63,7 @@ const BFM = {
               .map(el => itinParser.getBFMitin(el, directionItem, itemNumber, transferPoint))
   
               currentFlight.directions[direction][chunkListNumber] = currentFlight.directions[direction][chunkListNumber].concat(itinList)
-              console.log(`success BFM call for ${itemNumber} ${direction}: ${directionItem[itemNumber].OCT} => ${directionItem[itemNumber].DCT}, ${itinList.length}`);
+              console.log(`success BFM call for ${itemNumber} ${direction}: ${directionItem[itemNumber].OCT} => ${directionItem[itemNumber].DCT}, ${itinList.length}`)
             }
             resolve()
           })
