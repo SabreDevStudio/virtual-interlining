@@ -1,7 +1,9 @@
 
 'use strict'
 
-const BFMres = require('./bfm.resource.service')
+const BFMresource = require('./bfm.resource.service')
+const ypsilonResource = require('../ypsilon/ypsilon.resource.service')
+const itinParser = require('../itin.parser')
 
 const getSortedItinListByPrice = list => list.sort((a, b) =>
       a.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount - b.AirItineraryPricingInfo[0].ItinTotalFare.TotalFare.Amount)
@@ -19,7 +21,7 @@ const BFM = {
     })
   },
 
-  getTransferPointPromises: (BFMresource, ypsilonResource, itinParser, currentFlight, direction, itemNumber, chunkListNumber, transferPoint) => {
+  getTransferPointPromises: (currentFlight, direction, itemNumber, chunkListNumber, transferPoint) => {
     return currentFlight.directions[direction].source.map(directionItem => {
       if (directionItem[itemNumber].LCC === 'true') {
         return new Promise(resolve => {
@@ -51,7 +53,7 @@ const BFM = {
         })
       } else {
         return new Promise(resolve => {
-          BFMres.getBFM({
+          BFMresource.getBFM({
             DEPLocation: directionItem[itemNumber].OCT,
             ARRLocation: directionItem[itemNumber].DCT,
             DEPdateTimeLeg1: currentFlight.flightInitQuery.DEPdateTimeLeg1
@@ -72,12 +74,12 @@ const BFM = {
     })
   },
 
-  getBFMviaTransferPoint: async function (BFMresource, ypsilonResource, itinParser, currentFlight, direction) {
+  getBFMviaTransferPoint: async function (currentFlight, direction) {
     if (currentFlight.directions[direction].source.length) {
       currentFlight.directions[direction].source = BFM.getFiltereDeirectionsByUniqueTransferPoint(currentFlight, direction)
 
-      let TransferPointPromisesChunk1 = BFM.getTransferPointPromises(BFMresource, ypsilonResource, itinParser, currentFlight, direction, '1', 'chunk1list', 'DCT')
-      let TransferPointPromisesChunk2 = BFM.getTransferPointPromises(BFMresource, ypsilonResource, itinParser, currentFlight, direction, '2', 'chunk2list', 'OCT')
+      let TransferPointPromisesChunk1 = BFM.getTransferPointPromises(currentFlight, direction, '1', 'chunk1list', 'DCT')
+      let TransferPointPromisesChunk2 = BFM.getTransferPointPromises(currentFlight, direction, '2', 'chunk2list', 'OCT')
 
       await Promise.all(TransferPointPromisesChunk1.concat(TransferPointPromisesChunk2))
     }

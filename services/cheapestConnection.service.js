@@ -37,9 +37,10 @@ const findCheapestConnection = (currentFlight, direction) => {
           summarizedPriceInEuro: cheapestComparableItins.summarizedPriceInEuro
         }
         console.log(`${colors.yellow}${'\n'}Cheapest connection has been found for ${direction}.${colors.reset}`)
-      } else {
-        console.log('NO comparableItins........!')
       }
+      //  else {
+      //   console.log('NO comparableItins........!')
+      // }
       resolve()
     } else {
       console.log(`${colors.red}No connection for ${direction}.${colors.reset}`)

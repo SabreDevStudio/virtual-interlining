@@ -1,23 +1,17 @@
 const processVirtualInterlinig = require('../services/virtualInterlining.service')
-const BFMresource = require('../services/BFM/bfm.resource.service')
-const DSSresource = require('../services/DSS/dss.resource.service')
-const DSS = require('../services/DSS/dss.service')
-const BFM = require('../services/BFM/bfm.service')
-const ypsilonResource = require('../services/ypsilon/ypsilon.resource.service')
-const itinParser = require('../services/itin.parser')
 const assert = require('assert')
 const expect = require('chai').expect
 
 describe('VIRTUAL INTELINING MAIN FLOW', () => {
   let result = []
-  let allFlights = [{ DEPLocation: 'LON',
+  let oAndDwithDatesList = [{ DEPLocation: 'LON',
     ARRLocation: 'BKK',
     DEPdateTimeLeg1: '2018-11-05T00:00:00',
     DEPdateTimeLeg2: null
   }]
 
   before(async () => {
-    await processVirtualInterlinig(allFlights, BFMresource, DSSresource, DSS, BFM, 'GB', ypsilonResource, itinParser, (listOfFlights) => {
+    await processVirtualInterlinig(oAndDwithDatesList, 'GB', (listOfFlights) => {
       result = result.concat(listOfFlights)
     })
   })
@@ -27,7 +21,7 @@ describe('VIRTUAL INTELINING MAIN FLOW', () => {
   })
 
   it('should check that init and query object are the same', () => {
-    expect(result[0].flightInitQuery).to.eql(allFlights[0])
+    expect(result[0].flightInitQuery).to.eql(oAndDwithDatesList[0])
   })
 
   it('should check GDStoLCC and LCCtoGDS transfer cities', () => {

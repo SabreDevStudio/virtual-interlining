@@ -2,14 +2,18 @@ const csv = require('fast-csv')
 const fs = require('fs')
 const logCurrentFlightData = require('./log.service')
 const findCheapestConnection = require('./cheapestConnection.service')
+const BFMresource = require('./BFM/bfm.resource.service')
+const DSSresource = require('./DSS/dss.resource.service')
+const DSS = require('./DSS/dss.service')
+const BFM = require('./BFM/bfm.service')
 
-const processVirtualInterlinigLoop = async function (flightList, BFMresource, DSSresource, DSS, BFM, market, ypsilonResource, itinParser, cb) {
+const processVirtualInterlinigLoop = async function (oAndDwithDatesList, market, cb) {
   let VIresult = []
   const csvStream = csv.createWriteStream({headers: true})
   const writableStream = fs.createWriteStream(`./logs/${market}_${new Date().getTime()}_log.csv`)
   csvStream.pipe(writableStream)
 
-  for (const flightInitQuery of flightList) {
+  for (const flightInitQuery of oAndDwithDatesList) {
     let currentFlight = {flightInitQuery: flightInitQuery, market: market}
     console.log(`${currentFlight.flightInitQuery.DEPdateTimeLeg1} 
     ${currentFlight.flightInitQuery.DEPLocation} => ${currentFlight.flightInitQuery.ARRLocation}`)
@@ -24,9 +28,9 @@ const processVirtualInterlinigLoop = async function (flightList, BFMresource, DS
     .then(DSSdata => {
       currentFlight.directions = DSS.getSortedDSSbyDirection(DSS.getMmlList(DSSdata))
       console.log('DSS call')
-      return BFM.getBFMviaTransferPoint(BFMresource, ypsilonResource, itinParser, currentFlight, 'LCCtoGDS')
+      return BFM.getBFMviaTransferPoint(currentFlight, 'LCCtoGDS')
     })
-    .then(() => BFM.getBFMviaTransferPoint(BFMresource, ypsilonResource, itinParser, currentFlight, 'GDStoLCC'))
+    .then(() => BFM.getBFMviaTransferPoint(currentFlight, 'GDStoLCC'))
     .then(() => findCheapestConnection(currentFlight, 'LCCtoGDS'))
     .then(() => findCheapestConnection(currentFlight, 'GDStoLCC'))
     .then(() => {
