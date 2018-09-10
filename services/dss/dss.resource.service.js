@@ -5,35 +5,53 @@ const js2xmlparser = require('js2xmlparser')
 const jsHelper = require('../jsHelper.service')
 const request = require('request')
 
-const getRequest = (origin, destination, date) => {
-  return {
-    '@': {COR: 'Sabre', VER: '1.0'},
-    BIL: {
-      '@': {AAA: '61N1', AKD: 'S',CSV: 'MMODAL', PID: 'AA', TXN: 123, UCD: '61N1'}
-    },
-    SEG: {
-      '@': {SMN: 2, SMX: 2}
-    },
-    MMS: {
+const getRequest = (origin, destination, date, market) => {
+  if (market === 'RU') {
+    return {
+      '@': {COR: 'Sabre', VER: '1.0', CNP: true},
+      BIL: {
+        '@': {AAA: '61N1', AKD: 'S', CSV: 'MMODAL', PID: 'AA', TXN: 123, UCD: '61N1'}
+      },
+      SEG: {
+        '@': {SMN: 2, SMX: 2}
+      },
       ODM: {
         '@': {BRD: origin, OFF:destination, BTP:'C', OTP:'C'}
       },
-      DTM: {
-        '@': {TGD: date}
+      DAT: {
+        '@': {TG1: date}
+      }
+    }
+  } else {
+    return {
+      '@': {COR: 'Sabre', VER: '1.0'},
+      BIL: {
+        '@': {AAA: '61N1', AKD: 'S',CSV: 'MMODAL', PID: 'AA', TXN: 123, UCD: '61N1'}
       },
-      CTM: {
-        '@': {CNC: 0, CNA: 1439}
+      SEG: {
+        '@': {SMN: 2, SMX: 2}
       },
-      OTM: {
-        '@': {RGT: false}
+      MMS: {
+        ODM: {
+          '@': {BRD: origin, OFF:destination, BTP:'C', OTP:'C'}
+        },
+        DTM: {
+          '@': {TGD: date}
+        },
+        CTM: {
+          '@': {CNC: 0, CNA: 1439}
+        },
+        OTM: {
+          '@': {RGT: false}
+        }
       }
     }
   }
 }
 
-const getOneLinedBody = (origin, destination, date) => {
+const getOneLinedBody = (origin, destination, date, market) => {
   let body = {
-    request: js2xmlparser.parse('DSS', getRequest(origin, destination, date)),
+    request: js2xmlparser.parse('DSS', getRequest(origin, destination, date, market)),
     connectionPrefix: 'tcpip.',
     stylesheet: 'results-raw.xsl',
     'namingConnection.type': 'com.sabre.atse.dss.communication.DssNamingConnectionDescriptor',
@@ -71,14 +89,14 @@ const getheaders = () => {
 }
 
 const DSSResource = {
-  getTransferAirport: (origin, destination, date) => {
+  getTransferAirport: (origin, destination, date, market) => {
     return new Promise(resolve => {
       request.post({
         host: 'http://utt.cert.sabre.com',
         path: '/utt/dss/sendrequest',
         headers: getheaders(),
         url: 'http://utt.cert.sabre.com/utt/dss/sendrequest',
-        body: getOneLinedBody(origin, destination, date)
+        body: getOneLinedBody(origin, destination, date, market)
       }, (error, response) => {
         if (error || !response) {
           resolve()

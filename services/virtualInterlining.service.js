@@ -21,12 +21,17 @@ const processVirtualInterlinigLoop = async function (oAndDwithDatesList, market,
     await BFMresource.getBFM(currentFlight.flightInitQuery)
     .then(BFMresponse => {
       BFM.handleBFMresponse(currentFlight, BFMresponse)
-      return DSSresource.getTransferAirport(currentFlight.flightInitQuery.DEPLocation, 
-        currentFlight.flightInitQuery.ARRLocation, 
-        currentFlight.flightInitQuery.DEPdateTimeLeg1)
+      return DSSresource.getTransferAirport(currentFlight.flightInitQuery.DEPLocation,
+                                            currentFlight.flightInitQuery.ARRLocation,
+                                            currentFlight.flightInitQuery.DEPdateTimeLeg1, market)
     })
     .then(DSSdata => {
-      currentFlight.directions = DSS.getSortedDSSbyDirection(DSS.getMmlList(DSSdata))
+      if (market === 'RU') {
+        console.log(DSS.getParcedDssRuTransferPoints(DSSdata));
+      } else {
+        currentFlight.directions = DSS.getParcedDssTransferPoints(DSSdata)
+        // currentFlight.directions = DSS.getParcedDssTransferPoints(DSS.getMmlList(DSSdata))
+      }
       console.log('DSS call')
       return BFM.getBFMviaTransferPoint(currentFlight, 'LCCtoGDS')
     })

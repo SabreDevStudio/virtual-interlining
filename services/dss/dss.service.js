@@ -4,6 +4,15 @@ const easyconvert = require('easyconvert')
 const jsHelper = require('../jsHelper.service')
 
 const DSS = {
+  getParcedDssRuTransferPoints: dom => {
+    let transferPoints = []
+    if (dom && dom.window && dom.window.document) {
+      let slicedDOM = Array.prototype.slice.call(dom.window.document.querySelectorAll('table.fieldlist table.fieldlist table.fieldlist td.value'))
+      transferPoints = slicedDOM.map((el, index) => easyconvert.parse(el.outerHTML)[`td_${index}`].innerHTML)
+    }
+    return transferPoints
+  },
+
   getMmpList: dom => {
     if (dom && dom.window && dom.window.document) {
       let MMPLIST = Array.prototype.slice.call(dom.window.document.querySelectorAll('table.fieldlist table.fieldlist table.fieldlist'))
@@ -40,7 +49,8 @@ const DSS = {
     
     return MMLLIST
   },
-  getSortedDSSbyDirection: DSSlist => {
+  getParcedDssTransferPoints: dom => {
+    let DSSlist = DSS.getMmlList(dom)
     let sortedDSSlist = {
       GDStoLCC:{source:[], chunk1list:[], chunk2list:[]},
       LCCtoGDS:{source:[], chunk1list:[], chunk2list:[]}
