@@ -1,10 +1,10 @@
 const colors = require('./colorCodes.service')
 const currencyConverter = require('./currencyConverter.service')
-const getMiliseconds = hour => 1000 * 60 * 60 * hour
+const getMilisecondsInSetedHours = hour => 1000 * 60 * 60 * hour
 
 const isDatesHaveEnoughTimeForTransfer = (date1, date2) => 
-  new Date(date2).getTime() - new Date(date1).getTime() > getMiliseconds(2) &&
-  new Date(date2).getTime() - new Date(date1).getTime() < getMiliseconds(6)
+  new Date(date2).getTime() - new Date(date1).getTime() > getMilisecondsInSetedHours(2) &&
+  new Date(date2).getTime() - new Date(date1).getTime() < getMilisecondsInSetedHours(6)
 
 const sortArrayBySummarizedPriceInEuro = list => list.sort((a, b) => a.summarizedPriceInEuro - b.summarizedPriceInEuro)
 

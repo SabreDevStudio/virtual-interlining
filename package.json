@@ -5,7 +5,7 @@
   "private": true,
   "main": "app.js",
   "scripts": {
-    "test": "nyc --show-process-tree ./node_modules/mocha/bin/mocha --timeout 55000",
+    "test": "nyc --show-process-tree ./node_modules/mocha/bin/mocha --timeout 55000 && nyc report --reporter=html",
     "start": "SET MARKET='GB' && node app.js",
     "GB": "SET NODE_ENV=GB&& node app.js",
     "ES": "SET NODE_ENV=ES&& node app.js",
@@ -28,6 +28,7 @@
   "devDependencies": {
     "chai": "^4.1.2",
     "mocha": "^5.2.0",
-    "nyc": "^13.0.1"
+    "nyc": "^13.0.1",
+    "rewire": "^4.0.1"
   }
 }
