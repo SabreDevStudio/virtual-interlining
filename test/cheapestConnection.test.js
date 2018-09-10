@@ -1,6 +1,5 @@
 const rewire = require("rewire")
-const cheapestConnection = rewire("../services/cheapestConnection.service");
-const expect = require('chai').expect
+const cheapestConnection = rewire("../services/cheapestConnection.service")
 const assert = require('assert')
 const getMilisecondsInSetedHours_private = cheapestConnection.__get__('getMilisecondsInSetedHours')
 const isDatesHaveEnoughTimeForTransfer_private = cheapestConnection.__get__('isDatesHaveEnoughTimeForTransfer')

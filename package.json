@@ -5,13 +5,16 @@
   "private": true,
   "main": "app.js",
   "scripts": {
-    "test": "nyc --show-process-tree ./node_modules/mocha/bin/mocha --timeout 55000 && nyc report --reporter=html",
+    "test": "nyc ./node_modules/mocha/bin/mocha --timeout 55000 && nyc report --reporter=html",
     "start": "SET MARKET='GB' && node app.js",
-    "GB": "SET NODE_ENV=GB&& node app.js",
+    "DK": "SET NODE_ENV=DK&& node app.js",
     "ES": "SET NODE_ENV=ES&& node app.js",
     "FR": "SET NODE_ENV=FR&& node app.js",
+    "NO": "SET NODE_ENV=NO&& node app.js",
+    "RU": "SET NODE_ENV=RU&& node app.js",
+    "SE": "SET NODE_ENV=SE&& node app.js",
     "US": "SET NODE_ENV=US&& node app.js",
-    "RU": "SET NODE_ENV=RU&& node app.js"
+    "GB": "SET NODE_ENV=GB&& node app.js"
   },
   "author": "",
   "license": "ISC",
