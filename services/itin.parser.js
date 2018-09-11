@@ -1,7 +1,7 @@
 const jsHelper = require('./jsHelper.service')
 
-const setTransferAndViaData = (el, directionItem, itemNumber, transferPoint) => {
-  el.transferPoint = directionItem[itemNumber][transferPoint]
+const setTransferCity = (el, directionItem, chunkNumber, transferPoint) => {
+  el.transferPoint = directionItem[chunkNumber][transferPoint]
   return el
 }
 
@@ -31,8 +31,8 @@ const getTripCalendar = (flights = [], apiName) => {
   return schedule.length ? schedule : null
 }
 
-const getYpsilonItin = (el, directionItem, itemNumber, transferPoint, flightSegments) => {
-  setTransferAndViaData(el, directionItem, itemNumber, transferPoint)
+const getYpsilonItin = (el, directionItem, chunkNumber, transferPoint, flightSegments) => {
+  setTransferCity(el, directionItem, chunkNumber, transferPoint)
   el.departureDateTime = flightSegments[0].depTime
   el.arrivalDateTime = flightSegments[flightSegments.length - 1].arrTime
   el.totalPrice = el.price + el.tax
@@ -42,8 +42,8 @@ const getYpsilonItin = (el, directionItem, itemNumber, transferPoint, flightSegm
   el.tripCalendar = getTripCalendar(flightSegments, 'ypsilon')
   return el
 }
-const getBFMitin = (el, directionItem, itemNumber, transferPoint) => {
-  setTransferAndViaData(el, directionItem, itemNumber, transferPoint)
+const getBFMitin = (el, directionItem, chunkNumber, transferPoint) => {
+  setTransferCity(el, directionItem, chunkNumber, transferPoint)
   let flightSegment = el.AirItinerary.OriginDestinationOptions.OriginDestinationOption[0].FlightSegment
   el.departureDateTime = flightSegment[0].DepartureDateTime
   el.arrivalDateTime = flightSegment[flightSegment.length - 1].ArrivalDateTime

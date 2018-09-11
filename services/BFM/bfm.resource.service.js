@@ -95,6 +95,11 @@ const BFMResource = {
           body: getBFMbody(BFMdetails),
           json: true
         }, (err, response) => {
+          if(err) {
+            console.log('BFM err: ', err)
+          } else {
+            console.log('BFM: ', response.statusCode)
+          }
           resolve(response)
         })
     })

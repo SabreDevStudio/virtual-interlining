@@ -8,45 +8,63 @@ const isDatesHaveEnoughTimeForTransfer = (date1, date2) =>
 
 const sortArrayBySummarizedPriceInEuro = list => list.sort((a, b) => a.summarizedPriceInEuro - b.summarizedPriceInEuro)
 
-const findCheapestConnection = (currentFlight, direction) => {
-  return new Promise(resolve => {
-    if (currentFlight.directions[direction].chunk1list.length && currentFlight.directions[direction].chunk2list.length) {
-      let comparableItins = []
-
-      currentFlight.directions[direction].chunk1list.forEach(itinA => {
-        process.stdout.write('.')
-        currentFlight.directions[direction].chunk2list.forEach(itinB => {
-          if(isDatesHaveEnoughTimeForTransfer(itinA.arrivalDateTime, itinB.departureDateTime) &&
-              itinA.transferPoint === itinB.transferPoint) {
-              comparableItins.push({itinA: itinA, itinB: itinB})
-          }
+const cheapestConnection = {
+  find: currentFlight => {
+    return new Promise(resolve => {
+      cheapestConnection.getCheapest(currentFlight, 'LCCtoGDS').then(() => {
+        cheapestConnection.getCheapest(currentFlight, 'GDStoLCC').then(() => {
+          resolve()
         })
       })
+    })
+  },
+  getCheapest: (currentFlight, direction) => {
+    return new Promise(resolve => {
+      if (currentFlight.directions[direction].chunk1list.length && currentFlight.directions[direction].chunk2list.length) {
+        let comparableItins = []
+  
+        currentFlight.directions[direction].chunk1list.forEach(itinA => {
+          process.stdout.write('.')
+          currentFlight.directions[direction].chunk2list.forEach(itinB => {
+            if(isDatesHaveEnoughTimeForTransfer(itinA.arrivalDateTime, itinB.departureDateTime) &&
+                itinA.transferPoint === itinB.transferPoint) {
+                  console.log('itinA transferPoint: ', itinA.transferPoint)
+                  console.log('itinB transferPoint: ', itinB.transferPoint)
 
-      if (comparableItins.length) {
-        let comparableItinsList = comparableItins.map(el => {
-          el.summarizedPriceInEuro = currencyConverter.toEuro(el.itinA.totalPrice, el.itinA.currency) + 
-                               currencyConverter.toEuro(el.itinB.totalPrice, el.itinB.currency)
-          return el
+                  console.log('itinA arrTo: ', itinA.tripCalendar[0].arrTo)
+                  console.log('itinB depFrom: ', itinB.tripCalendar[itinB.tripCalendar.length - 1].depFrom)
+                  console.log('=======================');
+                  
+                  
+                comparableItins.push({itinA: itinA, itinB: itinB})
+            }
+          })
         })
-
-        let cheapestComparableItins = sortArrayBySummarizedPriceInEuro(comparableItinsList)[0]
-        currentFlight.directions[direction].result = {
-          itinA: cheapestComparableItins.itinA,
-          itinB: cheapestComparableItins.itinB,
-          summarizedPriceInEuro: cheapestComparableItins.summarizedPriceInEuro
+  
+        if (comparableItins.length) {
+          let comparableItinsList = comparableItins.map(el => {
+            el.summarizedPriceInEuro = currencyConverter.toEuro(el.itinA.totalPrice, el.itinA.currency) + 
+                                 currencyConverter.toEuro(el.itinB.totalPrice, el.itinB.currency)
+            return el
+          })
+  
+          let cheapestComparableItins = sortArrayBySummarizedPriceInEuro(comparableItinsList)[0]
+          currentFlight.directions[direction].result = {
+            itinA: cheapestComparableItins.itinA,
+            itinB: cheapestComparableItins.itinB,
+            summarizedPriceInEuro: cheapestComparableItins.summarizedPriceInEuro
+          }
+          console.log(`${colors.yellow}${'\n'}Cheapest connection has been found for ${direction}.${colors.reset}`)
+        } else {
+          console.log('NO comparableItins........!')
         }
-        console.log(`${colors.yellow}${'\n'}Cheapest connection has been found for ${direction}.${colors.reset}`)
+        resolve()
+      } else {
+        console.log(`${colors.red}No connection for ${direction}.${colors.reset}`)
+        resolve()
       }
-      //  else {
-      //   console.log('NO comparableItins........!')
-      // }
-      resolve()
-    } else {
-      console.log(`${colors.red}No connection for ${direction}.${colors.reset}`)
-      resolve()
-    }
-  })
+    })
+  }
 }
 
-module.exports = findCheapestConnection
+module.exports = cheapestConnection

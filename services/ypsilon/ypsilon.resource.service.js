@@ -36,7 +36,14 @@ const ypsilonResource = {
           body: getBody(tripInfo),
           json: true
         }, (err, response) => {
-          err ? reject(err) : resolve(response)
+          if(err) {
+            console.log('Ypsilon err: ', err)
+            reject(err)
+          } else {
+            console.log('Ypsilon: ', response.statusCode)
+            
+            resolve(response)
+          }
         })
     })
   }

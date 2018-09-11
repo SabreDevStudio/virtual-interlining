@@ -5,7 +5,12 @@ const js2xmlparser = require('js2xmlparser')
 const jsHelper = require('../jsHelper.service')
 const request = require('request')
 
-const getRequest = (origin, destination, date, market) => {
+const getRequest = currentFlight => {
+  let origin = currentFlight.flightInitQuery.DEPLocation
+  let destination = currentFlight.flightInitQuery.ARRLocation
+  let date = currentFlight.flightInitQuery.DEPdateTimeLeg1
+  let market = currentFlight.market
+  
   if (market === 'RU') {
     return {
       '@': {COR: 'Sabre', VER: '1.0', CNP: true},
@@ -49,9 +54,9 @@ const getRequest = (origin, destination, date, market) => {
   }
 }
 
-const getOneLinedBody = (origin, destination, date, market) => {
+const getOneLinedBody = currentFlight => {
   let body = {
-    request: js2xmlparser.parse('DSS', getRequest(origin, destination, date, market)),
+    request: js2xmlparser.parse('DSS', getRequest(currentFlight)),
     connectionPrefix: 'tcpip.',
     stylesheet: 'results-raw.xsl',
     'namingConnection.type': 'com.sabre.atse.dss.communication.DssNamingConnectionDescriptor',
@@ -89,18 +94,20 @@ const getheaders = () => {
 }
 
 const DSSResource = {
-  getTransferAirport: (origin, destination, date, market) => {
+  getTransferAirport: currentFlight => {
     return new Promise(resolve => {
       request.post({
         host: 'http://utt.cert.sabre.com',
         path: '/utt/dss/sendrequest',
         headers: getheaders(),
         url: 'http://utt.cert.sabre.com/utt/dss/sendrequest',
-        body: getOneLinedBody(origin, destination, date, market)
+        body: getOneLinedBody(currentFlight)
       }, (error, response) => {
         if (error || !response) {
+          console.log('DSS error: ', error)
           resolve()
         } else {
+          console.log('DSS: OK')
           resolve(new JSDOM(response.body))
         }
       })
