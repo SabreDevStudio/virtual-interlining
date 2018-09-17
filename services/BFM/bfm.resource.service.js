@@ -100,6 +100,7 @@ const BFMResource = {
           } else {
             console.log('BFM: ', response.statusCode)
           }
+          response.transferCity = BFMdetails.transferCity
           resolve(response)
         })
     })

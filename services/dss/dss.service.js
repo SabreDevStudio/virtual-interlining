@@ -8,7 +8,12 @@ const DSS = {
     let transferPoints = []
     if (dom && dom.window && dom.window.document) {
       let slicedDOM = Array.prototype.slice.call(dom.window.document.querySelectorAll('table.fieldlist table.fieldlist table.fieldlist td.value'))
-      transferPoints = slicedDOM.map((el, index) => easyconvert.parse(el.outerHTML)[`td_${index}`].innerHTML)
+      
+      transferPoints = slicedDOM.map(el => {
+        let parsedHTML = easyconvert.parse(el.outerHTML)
+        let currentKey = Object.keys(parsedHTML)[0]
+        return parsedHTML[currentKey].innerHTML
+      })
     }
     return transferPoints
   },

@@ -20,25 +20,57 @@ const getChunkList = (currentFlight, chunkNumber) => {
     return {
       DEP: chunkNumber === 1 ? currentFlight.flightInitQuery.DEPLocation : el,
       ARR: chunkNumber === 1 ? el : currentFlight.flightInitQuery.ARRLocation,
-      date: currentFlight.flightInitQuery.DEPdateTimeLeg1
+      date: currentFlight.flightInitQuery.DEPdateTimeLeg1,
+      transferCity: el
     }
+  })
+}
+
+const getNoDirectionalChunksLists = currentFlight => {
+  return {
+    chunk1List: {source: getChunkList(currentFlight, 1)},
+    chunk2List: {source: getChunkList(currentFlight, 2)}
+  }
+}
+
+const getNoDirectionalItins = async function (currentFlight, chunkNumber) {
+  let promiseList = []
+  currentFlight.noDirections[`chunk${chunkNumber}List`].source.forEach(el => {
+    promiseList.push(BFMresource.getBFM({DEPLocation: el.DEP, ARRLocation: el.ARR, DEPdateTimeLeg1: el.date, transferCity: el.transferCity}))
+    promiseList.push(ypsilonResource.getItins({depDate: el.date.split('T')[0], depCity: el.DEP, dstCity: el.ARR, transferCity: el.transferCity}))
+  })
+  return await Promise.all(promiseList)
+}
+
+const processNoDirectionalItins = currentFlight => {
+  return new Promise(resolve => {
+    currentFlight.noDirections = getNoDirectionalChunksLists(currentFlight)
+    // timeToGetItins
+    getNoDirectionalItins(currentFlight, 1).then(chunk1values => {
+      currentFlight.noDirections.chunk1List.result = []
+
+      let successResponseListChunk1 = chunk1values.filter(response => response.statusCode === 200)
+      successResponseListChunk1.forEach(responseChunk1 => {
+        currentFlight.noDirections.chunk1List.result = currentFlight.noDirections.chunk1List.result.concat(itinParser.parseResponseToItinList(responseChunk1))
+      })
+      
+      return getNoDirectionalItins(currentFlight, 2)
+    }).then(chunk2values => {
+      currentFlight.noDirections.chunk2List.result = []
+
+      let successResponseListChunk2 = chunk2values.filter(response => response.statusCode === 200)
+      successResponseListChunk2.forEach(responseChunk2 => {
+        currentFlight.noDirections.chunk2List.result = currentFlight.noDirections.chunk2List.result.concat(itinParser.parseResponseToItinList(responseChunk2))
+      })
+      
+      resolve()
+    })
   })
 }
 
 const getItineraryViaTransferPoint = async function (currentFlight, direction) {
   if (!direction && currentFlight.transferPointList && currentFlight.transferPointList.length) {
-    currentFlight.noDirections = {
-      source: {
-        chunk1List: getChunkList(currentFlight, 1),
-        chunk2List: getChunkList(currentFlight, 2)
-      }
-    }
-
-    // console.log('chunk1List: ', chunk1List)
-    // console.log('chunk2List: ', chunk2List)
-    
-    
-    //no directions case
+    await processNoDirectionalItins(currentFlight)
   } else if (direction && currentFlight.directions[direction].source.length) {
     currentFlight.directions[direction].source = getFiltereDirectionsByUniqueTransferPoint(currentFlight, direction)
 
@@ -51,73 +83,51 @@ const getItineraryViaTransferPoint = async function (currentFlight, direction) {
 
 const chooseBetwinPromisesApis = (currentFlight, direction, chunkNumber, transferCityPoint) => {
   return currentFlight.directions[direction].source.map(DSSitem => {
-    console.log('DSSitem: ', DSSitem);
-    
+    let transferCity = DSSitem[chunkNumber][transferCityPoint]
     if (DSSitem[chunkNumber].LCC === 'true') {
-      return getTransfersViaYpsilon(currentFlight, direction, chunkNumber, transferCityPoint, DSSitem)
+      return getTransfersViaYpsilon(currentFlight, direction, chunkNumber, transferCity, DSSitem)
     } else {
-      return getTransfersViaBFM(currentFlight, direction, chunkNumber, transferCityPoint, DSSitem)
+      return getTransfersViaBFM(currentFlight, direction, chunkNumber, transferCity, DSSitem)
     }
   })
 }
 
-const getTransfersViaYpsilon = (currentFlight, direction, chunkNumber, transferCityPoint, DSSitem) => {
+const getTransfersViaYpsilon = (currentFlight, direction, chunkNumber, transferCity, DSSitem) => {
   return new Promise(resolve => {
     ypsilonResource.getItins({
       depDate: currentFlight.flightInitQuery.DEPdateTimeLeg1.split('T')[0],
       depCity: DSSitem[chunkNumber].OCT,
-      dstCity: DSSitem[chunkNumber].DCT
+      dstCity: DSSitem[chunkNumber].DCT,
+      transferCity: transferCity
     }).then(ypsilonData => {
-      handleYpsilonResponse(ypsilonData, currentFlight, direction, chunkNumber, transferCityPoint, DSSitem)
+      handleYpsilonResponse(ypsilonData, currentFlight, direction, chunkNumber)
       resolve()
     })
   })
 }
 
-const handleYpsilonResponse = (ypsilonData, currentFlight, direction, chunkNumber, transferCityPoint, DSSitem) => {
-  if (ypsilonData && ypsilonData.statusCode === 200 && ypsilonData.body && ypsilonData.body.tarifs) {
-    let itinList = []
-
-    if (ypsilonData.body.tarifs.length) {
-      ypsilonData.body.tarifs.forEach(el => {
-        if (el.outbound.flights.length > 1) {
-          el.outbound.flights.forEach(flight => {
-            itinList.push(itinParser.getYpsilonItin(el, DSSitem, chunkNumber, transferCityPoint, flight.segments))
-          })
-        } else {
-          itinList.push(itinParser.getYpsilonItin(el, DSSitem, chunkNumber, transferCityPoint, el.outbound.flights[0].segments))
-        }
-      })
-    }
-
-    currentFlight.directions[direction][`chunk${chunkNumber}list`] = currentFlight.directions[direction][`chunk${chunkNumber}list`].concat(itinList)
-    console.log(`success Ypsilon call for ${chunkNumber} ${direction}: ${DSSitem[chunkNumber].OCT} => ${DSSitem[chunkNumber].DCT}, ${itinList.length}`)
-  }
+const handleYpsilonResponse = (ypsilonData, currentFlight, direction, chunkNumber) => {
+  let itinList = itinParser.parseResponseToItinList(ypsilonData)
+  currentFlight.directions[direction][`chunk${chunkNumber}list`] = currentFlight.directions[direction][`chunk${chunkNumber}list`].concat(itinList)
 }
 
-const getTransfersViaBFM = (currentFlight, direction, chunkNumber, transferCityPoint, DSSitem) => {
+const getTransfersViaBFM = (currentFlight, direction, chunkNumber, transferCity, DSSitem) => {
   return new Promise(resolve => {
     BFMresource.getBFM({
       DEPLocation: DSSitem[chunkNumber].OCT,
       ARRLocation: DSSitem[chunkNumber].DCT,
-      DEPdateTimeLeg1: currentFlight.flightInitQuery.DEPdateTimeLeg1
+      DEPdateTimeLeg1: currentFlight.flightInitQuery.DEPdateTimeLeg1,
+      transferCity: transferCity
     }).then(data => {
-      handleBFMresponse(data, currentFlight, direction, chunkNumber, transferCityPoint, DSSitem)
+      handleBFMresponse(data, currentFlight, direction, chunkNumber)
       resolve()
     })
   })
 }
 
-const handleBFMresponse = (data, currentFlight, direction, chunkNumber, transferCityPoint, DSSitem) => {
-  if(data && data.statusCode === 200 && data.body && data.body.OTA_AirLowFareSearchRS && 
-    data.body.OTA_AirLowFareSearchRS.PricedItineraries && 
-    data.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary) {
-    let itinList = data.body.OTA_AirLowFareSearchRS.PricedItineraries.PricedItinerary
-    .map(el => itinParser.getBFMitin(el, DSSitem, chunkNumber, transferCityPoint))
-
-    currentFlight.directions[direction][`chunk${chunkNumber}list`] = currentFlight.directions[direction][`chunk${chunkNumber}list`].concat(itinList)
-    console.log(`success BFM call for ${chunkNumber} ${direction}: ${DSSitem[chunkNumber].OCT} => ${DSSitem[chunkNumber].DCT}, ${itinList.length}`)
-  }
+const handleBFMresponse = (data, currentFlight, direction, chunkNumber) => {
+  let itinList = itinParser.parseResponseToItinList(data)
+  currentFlight.directions[direction][`chunk${chunkNumber}list`] = currentFlight.directions[direction][`chunk${chunkNumber}list`].concat(itinList)
 }
 
 const itineraryViaTransferPoint = {
@@ -126,16 +136,13 @@ const itineraryViaTransferPoint = {
       if (currentFlight.market === 'RU') {
         currentFlight.transferPointList = DSS.getParcedDssRuTransferPoints(DSSdata)
         console.log(currentFlight.transferPointList)
-        getItineraryViaTransferPoint(currentFlight, null)
+        getItineraryViaTransferPoint(currentFlight, null).then(() => resolve())
       } else {
         currentFlight.directions = DSS.getParcedDssTransferPoints(DSSdata)
         getItineraryViaTransferPoint(currentFlight, 'LCCtoGDS').then(() => {
-          getItineraryViaTransferPoint(currentFlight, 'GDStoLCC').then(() => {
-            resolve()
-          })
+          getItineraryViaTransferPoint(currentFlight, 'GDStoLCC').then(() => resolve())
         })
       }
-
     })
   }
 }

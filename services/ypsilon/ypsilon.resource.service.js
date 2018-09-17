@@ -41,7 +41,7 @@ const ypsilonResource = {
             reject(err)
           } else {
             console.log('Ypsilon: ', response.statusCode)
-            
+            response.transferCity = tripInfo.transferCity
             resolve(response)
           }
         })
