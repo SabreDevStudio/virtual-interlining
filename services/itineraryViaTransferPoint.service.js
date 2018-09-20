@@ -2,6 +2,7 @@ const BFMresource = require('./BFM/bfm.resource.service')
 const ypsilonResource = require('./ypsilon/ypsilon.resource.service')
 const itinParser = require('./itin.parser')
 const DSS = require('./DSS/dss.service')
+const PromisePool = require('es6-promise-pool')
 
 const getFiltereDirectionsByUniqueTransferPoint = (currentFlight, direction) => {
   let uniqueValues = []
@@ -33,36 +34,71 @@ const getNoDirectionalChunksLists = currentFlight => {
   }
 }
 
-const getNoDirectionalItins = async function (currentFlight, chunkNumber) {
-  let promiseList = []
-  currentFlight.noDirections[`chunk${chunkNumber}List`].source.forEach(el => {
-    promiseList.push(BFMresource.getBFM({DEPLocation: el.DEP, ARRLocation: el.ARR, DEPdateTimeLeg1: el.date, transferCity: el.transferCity}))
-    promiseList.push(ypsilonResource.getItins({depDate: el.date.split('T')[0], depCity: el.DEP, dstCity: el.ARR, transferCity: el.transferCity}))
+const getBfmPromise = (itinList, count) => BFMresource.getBFM({
+  DEPLocation: itinList[count-1].DEP, 
+  ARRLocation: itinList[count-1].ARR, 
+  DEPdateTimeLeg1: itinList[count-1].date, 
+  transferCity: itinList[count-1].transferCity
+})
+
+const getYpsilonPromise = (itinList, count) => ypsilonResource.getItins({
+  depDate: itinList[count-1].date.split('T')[0], 
+  depCity: itinList[count-1].DEP, 
+  dstCity: itinList[count-1].ARR, 
+  transferCity: itinList[count-1].transferCity
+})
+
+const getNoDirectionalItins = (apiName, currentFlight, chunkNumber) => {
+  let count = 0, concurrency = 2, noDirectionalItins = []
+
+  let itinList = currentFlight.noDirections[`chunk${chunkNumber}List`].source
+  const bfmPromiseProducer = () => {
+    if (count < itinList.length) {
+      count++
+      if (apiName == 'bfm') {
+        return getBfmPromise(itinList, count)
+      } else {
+        return getYpsilonPromise(itinList, count)
+      }
+    } else {
+      return null
+    }
+  }
+
+  return new Promise(resolve => {
+    let pool = new PromisePool(bfmPromiseProducer, concurrency)
+    pool.addEventListener('fulfilled', ev => noDirectionalItins.push(ev.data.result))
+    pool.start().then(() => resolve(noDirectionalItins))
   })
-  return await Promise.all(promiseList)
+}
+
+const getParsedItinList = itinList => {
+  let parsedList = []
+  let successResponseList = itinList.filter(response => response.statusCode === 200)
+  successResponseList.forEach(responseChunk => {
+    parsedList = parsedList.concat(itinParser.parseResponseToItinList(responseChunk))
+  })
+
+  return parsedList
 }
 
 const processNoDirectionalItins = currentFlight => {
   return new Promise(resolve => {
     currentFlight.noDirections = getNoDirectionalChunksLists(currentFlight)
-    // timeToGetItins
-    getNoDirectionalItins(currentFlight, 1).then(chunk1values => {
-      currentFlight.noDirections.chunk1List.result = []
 
-      let successResponseListChunk1 = chunk1values.filter(response => response.statusCode === 200)
-      successResponseListChunk1.forEach(responseChunk1 => {
-        currentFlight.noDirections.chunk1List.result = currentFlight.noDirections.chunk1List.result.concat(itinParser.parseResponseToItinList(responseChunk1))
-      })
-      
-      return getNoDirectionalItins(currentFlight, 2)
-    }).then(chunk2values => {
-      currentFlight.noDirections.chunk2List.result = []
-
-      let successResponseListChunk2 = chunk2values.filter(response => response.statusCode === 200)
-      successResponseListChunk2.forEach(responseChunk2 => {
-        currentFlight.noDirections.chunk2List.result = currentFlight.noDirections.chunk2List.result.concat(itinParser.parseResponseToItinList(responseChunk2))
-      })
-      
+    getNoDirectionalItins('bfm', currentFlight, 1).then(bfmItinList1 => {
+      currentFlight.noDirections.chunk1List.result = getParsedItinList(bfmItinList1)
+      return getNoDirectionalItins('ypsilon', currentFlight, 1)
+    })
+    .then(ypsilonItinList1 => {
+      currentFlight.noDirections.chunk1List.result = currentFlight.noDirections.chunk1List.result.concat(getParsedItinList(ypsilonItinList1))
+      return getNoDirectionalItins('bfm', currentFlight, 2)
+    })
+    .then(bfmItinList2 => {
+      currentFlight.noDirections.chunk2List.result = getParsedItinList(bfmItinList2)
+      return getNoDirectionalItins('ypsilon', currentFlight, 2)
+    }).then(ypsilonItinList2 => {
+      currentFlight.noDirections.chunk2List.result = currentFlight.noDirections.chunk2List.result.concat(getParsedItinList(ypsilonItinList2))
       resolve()
     })
   })
@@ -133,7 +169,7 @@ const handleBFMresponse = (data, currentFlight, direction, chunkNumber) => {
 const itineraryViaTransferPoint = {
   get: (currentFlight, DSSdata) => {
     return new Promise(resolve => {
-      if (currentFlight.market === 'RU') {
+      if (currentFlight.market === 'RU' || currentFlight.market === 'US') {
         currentFlight.transferPointList = DSS.getParcedDssRuTransferPoints(DSSdata)
         console.log(currentFlight.transferPointList)
         getItineraryViaTransferPoint(currentFlight, null).then(() => resolve())

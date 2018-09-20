@@ -25,7 +25,7 @@ const processVirtualInterlinigLoop = async function (oAndDwithDatesList, market,
     .then(() => cheapestConnection.find(currentFlight))
     .then(() => logCurrentFlightData(csvStream, currentFlight))
     .then(() => VIresult.push(currentFlight))
-    .catch(err => { throw new Error(err) })
+    // .catch(err => { throw new Error(err) })
     console.log('----------------------------------------NEXT INTERLINING----------------------------------------')
   }
 

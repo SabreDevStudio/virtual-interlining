@@ -8,7 +8,7 @@ const isDatesHaveEnoughTimeForTransfer = (date1, date2) =>
 
 const sortArrayBySummarizedPriceInEuro = list => list.sort((a, b) => a.summarizedPriceInEuro - b.summarizedPriceInEuro)
 
-const setCorrectCurrency = list => {
+const setSummarizedPriceInEuro = list => {
   return list.map(el => {
     el.summarizedPriceInEuro = currencyConverter.toEuro(el.itinA.totalPrice, el.itinA.currency) + 
                          currencyConverter.toEuro(el.itinB.totalPrice, el.itinB.currency)
@@ -42,7 +42,7 @@ const getCheapest = (currentFlight, direction) => {
     //filter arrays by transfet time and transfer point
     let comparableItinsList = getCombinableItinList(chunk1list, chunk2list)
     if (comparableItinsList.length) {
-      comparableItinsList = setCorrectCurrency(comparableItinsList)
+      comparableItinsList = setSummarizedPriceInEuro(comparableItinsList)
       let cheapestComparableItins = sortArrayBySummarizedPriceInEuro(comparableItinsList)[0]
       console.log(`${colors.yellow}${'\n'}Cheapest connection has been found.${colors.reset}`)
       resolve({

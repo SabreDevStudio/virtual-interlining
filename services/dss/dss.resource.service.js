@@ -11,7 +11,7 @@ const getRequest = currentFlight => {
   let date = currentFlight.flightInitQuery.DEPdateTimeLeg1
   let market = currentFlight.market
   
-  if (market === 'RU') {
+  if (market === 'RU' || market === 'US') {
     return {
       '@': {COR: 'Sabre', VER: '1.0', CNP: true},
       BIL: {
