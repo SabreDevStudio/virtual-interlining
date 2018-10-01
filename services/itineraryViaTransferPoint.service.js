@@ -85,7 +85,6 @@ const getParsedItinList = itinList => {
 const processNoDirectionalItins = currentFlight => {
   return new Promise(resolve => {
     currentFlight.noDirections = getNoDirectionalChunksLists(currentFlight)
-
     getNoDirectionalItins('bfm', currentFlight, 1).then(bfmItinList1 => {
       currentFlight.noDirections.chunk1List.result = getParsedItinList(bfmItinList1)
       return getNoDirectionalItins('ypsilon', currentFlight, 1)
@@ -105,7 +104,7 @@ const processNoDirectionalItins = currentFlight => {
 }
 
 const getItineraryViaTransferPoint = async function (currentFlight, direction) {
-  if (!direction && currentFlight.transferPointList && currentFlight.transferPointList.length) {
+  if (!direction && currentFlight.transferPointList) {
     await processNoDirectionalItins(currentFlight)
   } else if (direction && currentFlight.directions[direction].source.length) {
     currentFlight.directions[direction].source = getFiltereDirectionsByUniqueTransferPoint(currentFlight, direction)

@@ -60,8 +60,14 @@ const getCheapest = (currentFlight, direction) => {
 const cheapestConnection = {
   find: currentFlight => {
     return new Promise(resolve => {
+      if (currentFlight.transferPointList && !currentFlight.transferPointList.length) {
+        console.log('ALEEERT');
+        
+        resolve()
+      }
+
       if (currentFlight.noDirections) {
-        getCheapest(currentFlight).then(cheapestConnection => {
+        getCheapest(currentFlight, null).then(cheapestConnection => {
           currentFlight.noDirections.cheapestConnection = cheapestConnection
           resolve()
         })

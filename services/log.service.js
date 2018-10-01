@@ -118,13 +118,16 @@ const writeDirectionalTrip = (csvStream, currentFlight, cb) => {
 }
 
 const writeNoDirectionalTrip = (csvStream, currentFlight, cb) => {
+  console.log('currentFlight: ',currentFlight);
+  
+    console.log('currentFlight itinA: ', currentFlight.noDirections.cheapestConnection.itinA);
+    console.log('currentFlight itinB: ', currentFlight.noDirections.cheapestConnection.itinB);
+  
 
+  
   let noDirectionalTrip = getTripCombination(null, currentFlight)
   let gdsPrice = getGDSprice(currentFlight) || null
   let viPrice = getItinsTotalPrice(noDirectionalTrip)
-  // console.log('getGDSprice: ', getGDSprice(currentFlight))
-  // console.log('currentFlight A: ', noDirectionalTrip ? noDirectionalTrip.itinA : '')
-  // console.log('currentFlight B: ', noDirectionalTrip ? noDirectionalTrip.itinB : '')
   let segmentList = noDirectionalTrip ? noDirectionalTrip.itinA.tripCalendar.concat(noDirectionalTrip.itinB.tripCalendar) : []
 
 
@@ -172,7 +175,6 @@ module.exports = (csvStream, currentFlight) => {
   return new Promise(resolve => {
     if (currentFlight.noDirections) {
       writeNoDirectionalTrip(csvStream, currentFlight, () => resolve())
-
       resolve()
     } else {
       writeDirectionalTrip(csvStream, currentFlight, () => resolve())
