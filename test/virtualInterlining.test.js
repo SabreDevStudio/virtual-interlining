@@ -6,7 +6,7 @@ describe('VIRTUAL INTELINING MAIN FLOW', () => {
   let result = []
   let oAndDwithDatesList = [{ DEPLocation: 'LON',
     ARRLocation: 'BKK',
-    DEPdateTimeLeg1: '2018-11-05T00:00:00',
+    DEPdateTimeLeg1: '2018-11-07T00:00:00',
     DEPdateTimeLeg2: null
   }]
 

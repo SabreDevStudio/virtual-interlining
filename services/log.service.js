@@ -1,9 +1,17 @@
 const moment = require('moment')
 const currencyConverter = require('./currencyConverter.service')
 
-const getTripCombination = (direction, currentFlight) => currentFlight.directions[direction].result
+const getTripCombination = (direction, currentFlight) => {
+  if (direction && currentFlight && currentFlight.directions && currentFlight.directions[direction]) {
+    return currentFlight.directions[direction].result
+  } else if (currentFlight.noDirections && currentFlight.noDirections.cheapestConnection) {
+    return currentFlight.noDirections.cheapestConnection
+  } else {
+    return null
+  }
+}
 
-const getItinsTotalPrice = trip =>  trip ? currencyConverter.roundNumber(trip.summarizedPriceInEuro) : null
+const getItinsTotalPrice = trip => trip ? currencyConverter.roundNumber(trip.summarizedPriceInEuro) : null
 
 const getGDSprice = currentFlight => {
   if (currentFlight.GDS) {
@@ -38,7 +46,7 @@ const getHoursBetweenDates = (date1, date2) => {
   }
 }
 
-module.exports = (csvStream, currentFlight) => {
+const writeDirectionalTrip = (csvStream, currentFlight, cb) => {
   let LCCtoGDStrip = getTripCombination('LCCtoGDS', currentFlight)
   let GDStoLCCtrip = getTripCombination('GDStoLCC', currentFlight)
   let LCCtoGDSsegments = LCCtoGDStrip ? LCCtoGDStrip.itinA.tripCalendar.concat(LCCtoGDStrip.itinB.tripCalendar) : []
@@ -106,5 +114,70 @@ module.exports = (csvStream, currentFlight) => {
     GDStoLCC_seg4_arr_to: getSegmentChunk(GDStoLCCsegments, 3, 'arrTo'),
 
     isCheaper: isCheaper(currentFlight, GDStoLCCtrip, LCCtoGDStrip)//true when cheaper than GDS
+  }, () => cb())
+}
+
+const writeNoDirectionalTrip = (csvStream, currentFlight, cb) => {
+  console.log('currentFlight: ',currentFlight);
+  
+    console.log('currentFlight itinA: ', currentFlight.noDirections.cheapestConnection.itinA);
+    console.log('currentFlight itinB: ', currentFlight.noDirections.cheapestConnection.itinB);
+  
+
+  
+  let noDirectionalTrip = getTripCombination(null, currentFlight)
+  let gdsPrice = getGDSprice(currentFlight) || null
+  let viPrice = getItinsTotalPrice(noDirectionalTrip)
+  let segmentList = noDirectionalTrip ? noDirectionalTrip.itinA.tripCalendar.concat(noDirectionalTrip.itinB.tripCalendar) : []
+
+
+  csvStream.write({
+    DEP: currentFlight.flightInitQuery.DEPLocation,
+    ARR: currentFlight.flightInitQuery.ARRLocation,
+    DEP_date: currentFlight.flightInitQuery.DEPdateTimeLeg1,
+
+    GDS: gdsPrice,
+    GDS_amount_of_stops: getAmoutOfStops(currentFlight.GDS),
+
+    Price: viPrice,
+    Number_of_stops: noDirectionalTrip ? noDirectionalTrip.itinA.amountOfStops + noDirectionalTrip.itinB.amountOfStops + 1: null,
+    Carrier_to_transfer_point: noDirectionalTrip ? noDirectionalTrip.itinA.carrier : null,
+    Carrier_from_transfer_point: noDirectionalTrip ? noDirectionalTrip.itinB.carrier : null,
+
+    seg1_dep_time: getSegmentChunk(segmentList, 0, 'depTime'),
+    seg1_arr_time: getSegmentChunk(segmentList, 0, 'arrTime'),
+    seg1_dep_from: getSegmentChunk(segmentList, 0, 'depFrom'),
+    seg1_arr_to: getSegmentChunk(segmentList, 0, 'arrTo'),
+    seg1_hours_to_next_flight: getHoursBetweenDates(getSegmentChunk(segmentList, 0, 'arrTime'), getSegmentChunk(segmentList, 1, 'depTime')),
+
+    seg2_dep_time: getSegmentChunk(segmentList, 1, 'depTime'),
+    seg2_arr_time: getSegmentChunk(segmentList, 1, 'arrTime'),
+    seg2_dep_from: getSegmentChunk(segmentList, 1, 'depFrom'),
+    seg2_arr_to: getSegmentChunk(segmentList, 1, 'arrTo'),
+    seg2_hours_to_next_flight: getHoursBetweenDates(getSegmentChunk(segmentList, 1, 'arrTime'), getSegmentChunk(segmentList, 2, 'depTime')),
+
+    seg3_dep_time: getSegmentChunk(segmentList, 2, 'depTime'),
+    seg3_arr_time: getSegmentChunk(segmentList, 2, 'arrTime'),
+    seg3_dep_from: getSegmentChunk(segmentList, 2, 'depFrom'),
+    seg3_arr_to: getSegmentChunk(segmentList, 2, 'arrTo'),
+    seg3_hours_to_next_flight: getHoursBetweenDates(getSegmentChunk(segmentList, 2, 'arrTime'), getSegmentChunk(segmentList, 3, 'depTime')),
+    
+    seg4_dep_time: getSegmentChunk(segmentList, 3, 'depTime'),
+    seg4_arr_time: getSegmentChunk(segmentList, 3, 'arrTime'),
+    seg4_dep_from: getSegmentChunk(segmentList, 3, 'depFrom'),
+    seg4_arr_to: getSegmentChunk(segmentList, 3, 'arrTo'),
+
+    isCheaper: gdsPrice && viPrice ? viPrice < gdsPrice : false//true when cheaper than GDS
+  }, () => cb())
+}
+
+module.exports = (csvStream, currentFlight) => {
+  return new Promise(resolve => {
+    if (currentFlight.noDirections) {
+      writeNoDirectionalTrip(csvStream, currentFlight, () => resolve())
+      resolve()
+    } else {
+      writeDirectionalTrip(csvStream, currentFlight, () => resolve())
+    }
   })
 }

@@ -1,11 +1,11 @@
 const csv = require('fast-csv')
 const fs = require('fs')
 const logCurrentFlightData = require('./log.service')
-const findCheapestConnection = require('./cheapestConnection.service')
+const cheapestConnection = require('./cheapestConnection.service')
 const BFMresource = require('./BFM/bfm.resource.service')
 const DSSresource = require('./DSS/dss.resource.service')
-const DSS = require('./DSS/dss.service')
 const BFM = require('./BFM/bfm.service')
+const itineraryViaTransferPoint = require('./itineraryViaTransferPoint.service')
 
 const processVirtualInterlinigLoop = async function (oAndDwithDatesList, market, cb) {
   let VIresult = []
@@ -19,26 +19,14 @@ const processVirtualInterlinigLoop = async function (oAndDwithDatesList, market,
     ${currentFlight.flightInitQuery.DEPLocation} => ${currentFlight.flightInitQuery.ARRLocation}`)
 
     await BFMresource.getBFM(currentFlight.flightInitQuery)
-    .then(BFMresponse => {
-      BFM.handleBFMresponse(currentFlight, BFMresponse)
-      return DSSresource.getTransferAirport(currentFlight.flightInitQuery.DEPLocation, 
-        currentFlight.flightInitQuery.ARRLocation, 
-        currentFlight.flightInitQuery.DEPdateTimeLeg1)
-    })
-    .then(DSSdata => {
-      currentFlight.directions = DSS.getSortedDSSbyDirection(DSS.getMmlList(DSSdata))
-      console.log('DSS call')
-      return BFM.getBFMviaTransferPoint(currentFlight, 'LCCtoGDS')
-    })
-    .then(() => BFM.getBFMviaTransferPoint(currentFlight, 'GDStoLCC'))
-    .then(() => findCheapestConnection(currentFlight, 'LCCtoGDS'))
-    .then(() => findCheapestConnection(currentFlight, 'GDStoLCC'))
-    .then(() => {
-      VIresult.push(currentFlight)
-      logCurrentFlightData(csvStream, currentFlight)
-    })
-    .catch(err => { throw new Error(err) })
-    console.log('----------------------------------------NEXT FLIGHT----------------------------------------')
+    .then(BFMresponse => BFM.handleBFMresponse(currentFlight, BFMresponse))
+    .then(() => DSSresource.getTransferAirport(currentFlight))
+    .then(DSSdata => itineraryViaTransferPoint.get(currentFlight, DSSdata))
+    .then(() => cheapestConnection.find(currentFlight))
+    .then(() => logCurrentFlightData(csvStream, currentFlight))
+    .then(() => VIresult.push(currentFlight))
+    // .catch(err => { throw new Error(err) })
+    console.log('----------------------------------------NEXT INTERLINING----------------------------------------')
   }
 
   cb(VIresult)
