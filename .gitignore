@@ -1,5 +1,4 @@
 node_modules
-services/access.js
 logs
 coverage
 .nyc_output
